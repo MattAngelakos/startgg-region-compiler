@@ -1,7 +1,7 @@
-import { atLeast, doRequest, intCheck, numCheck, stringCheck } from "../helpers.js"
+import { atLeast, doRequest, intCheck, numCheck, stringCheck, objectCheck, arrayCheck } from "../helpers.js"
 import { changeName } from "./players.js"
 import { getRegion } from "./regions.js"
-import { createPlayerLoss, createPlayerTourney, createPlayerWin, editPlayerLoss, editPlayerWin, getPlayerLoss, getPlayerTourney, getPlayerWin, getSeason, getSeasonInfo } from "./seasons.js"
+import { createPlayerLoss, createPlayerTourney, createPlayerWin, editPlayerLoss, editPlayerWin, getAllPlayerTournamentsInSeason, getPlayerLoss, getPlayerTourney, getPlayerWin, getSeason, getSeasonInfo } from "./seasons.js"
 import { createTournament, editTournamentEligible, getTournament } from "./tournaments.js"
 
 const createNewTournament = async (eventId, result, seasonIndex, placement, regionId, playerId, seasonName) => {
@@ -288,8 +288,30 @@ const do_h2h = async (regionId, seasonName) => {
     }
     return h2h
 }
+
+const calcAvgPlacement = async (tournaments, minimumEntrants, maximumEntrants) => {
+    let avg = 0
+    let numOfBrackets = 0
+    arrayCheck(tournaments, "tournaments")
+    numCheck(minimumEntrants, "minimumEntrants")
+    intCheck(minimumEntrants, "minimumEntrants")
+    numCheck(maximumEntrants, "maximumEntrants")
+    intCheck(maximumEntrants, "maximumEntrants")
+    for(const tournament of tournaments){
+        objectCheck(tournament, "tournament")
+        const currTournament = await getTournament(tournament.tourneyId)
+        if(currTournament.entrants >= minimumEntrants && currTournament.entrants <= maximumEntrants){
+            avg = avg + tournament.placement
+            numOfBrackets = numOfBrackets + 1
+        }
+    }
+    return avg/numOfBrackets
+}
+
+
 export{
     setsRequest,
     tournamentRequest,
-    do_h2h
+    do_h2h,
+    calcAvgPlacement
 }
