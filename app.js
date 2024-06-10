@@ -1,13 +1,9 @@
-// const smashUltId = 1386
-// await doRequest(query, 1852344, smashUltId, 10, 4, 1, 2024)
-// await doRequest(query2, 1852344, smashUltId, 5, 4, 1, 2024)
-// console.log(Math.floor(new Date().getTime() / 1000))
-
+import { ObjectId } from 'mongodb';
 import {dbConnection, closeConnection} from './config/mongoConnection.js';
-import { do_h2h, setsRequest, tournamentRequest } from './data/playerData.js';
+import { calcAvgPlacement, do_h2h, setsRequest } from './data/playerData.js';
 import { createPlayer } from './data/players.js';
 import { createRegion } from './data/regions.js';
-import { createSeason } from './data/seasons.js';
+import { createSeason, getAllPlayerTournamentsInSeason } from './data/seasons.js';
 const db = await dbConnection();
 await db.dropDatabase();
 let nj
@@ -33,12 +29,6 @@ try {
 catch (e){
     console.log(e);
 }
-/*try {
-    console.log(await tournamentRequest(nj._id.toString(), 1216463, "q2_2024"))
-}
-catch (e){
-    console.log(e);
-}*/
 try {
     console.log(await setsRequest(nj._id.toString(), 1216463, "q2_2024"))
 }
@@ -60,12 +50,6 @@ try {
 catch (e){
     console.log(e);
 }
-// try {
-//     console.log(await tournamentRequest(nj._id.toString(), 15768, "q2_2024"))
-// }
-// catch (e){
-//     console.log(e);
-// }
 try {
     console.log(await setsRequest(nj._id.toString(), 15768, "q2_2024"))
 }
@@ -87,12 +71,6 @@ try {
 catch (e){
     console.log(e);
 }
-// try {
-//     console.log(await tournamentRequest(nj._id.toString(), 1071129, "q2_2024"))
-// }
-// catch (e){
-//     console.log(e);
-// }
 try {
     console.log(await setsRequest(nj._id.toString(), 1071129, "q2_2024"))
 }
@@ -105,6 +83,11 @@ try{
     console.log(h2h)
 }
 catch (e){
+    console.log(e);
+}
+try{
+    console.log(await calcAvgPlacement(await getAllPlayerTournamentsInSeason("666401a605aac84d4f6b5ebd", 1216463, "q2_2024"), 16, 1000))
+}catch (e){
     console.log(e);
 }
 await closeConnection();

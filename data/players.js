@@ -16,7 +16,7 @@ const createPlayer = async (regionId, playerId) => {
         }
     }
     `
-    const data = await doRequest(query, playerId, 0, 0, 0)
+    const data = await doRequest(query, playerId, 0, 0, 0, 0)
     let newPlayer = {
         playerId: playerId,
         gamerTag: data.data.player.gamerTag,

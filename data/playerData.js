@@ -1,7 +1,8 @@
 import { atLeast, doRequest, intCheck, numCheck, stringCheck, objectCheck, arrayCheck } from "../helpers.js"
-import { changeName } from "./players.js"
+import { addPlay, createPlayerCharacter } from "./characters.js"
+import { createPlayerLoss, createPlayerWin, editPlayerLoss, editPlayerWin, getPlayerLoss, getPlayerWin } from "./records.js"
 import { getRegion } from "./regions.js"
-import { addPlay, createPlayerCharacter, createPlayerLoss, createPlayerTourney, createPlayerWin, editPlayerCharacter, editPlayerLoss, editPlayerWin, getAllPlayerTournamentsInSeason, getPlayerCharacter, getPlayerLoss, getPlayerTourney, getPlayerWin, getSeason, getSeasonInfo } from "./seasons.js"
+import { createPlayerTourney, getPlayerTourney, getSeason, getSeasonInfo } from "./seasons.js"
 import { createTournament, editTournamentEligible, getTournament } from "./tournaments.js"
 
 const createNewTournament = async (eventId, result, seasonIndex, placement, regionId, playerId, seasonName) => {
@@ -276,9 +277,31 @@ const calcAvgPlacement = async (tournaments, minimumEntrants, maximumEntrants) =
     return avg/numOfBrackets
 }
 
+const updateNames = async (regionId) => {
+    const query = `
+    query Name($id: ID!) {
+        player(id: $id) {
+            gamerTag
+        }
+    }
+    `
+    regionId = idCheck(regionId, "regionId")
+    let region = await getRegion(regionId)
+    for(let i = 0; i < region.players.length; i++){
+        numCheck(region.players[i].playerId, "playerId")
+        intCheck(region.players[i], "playerId")
+        const data = await doRequest(query, region.players[i].playerId, 0, 0, 0, 0)
+        if(data.data.player.gamerTag !== region.players[i].gamerTag){
+            region.players[i].gamerTag = data.data.player.gamerTag
+        }
+        await editRegion(regionId, region)
+    }
+    return region.players
+}
 
 export{
     setsRequest,
     do_h2h,
-    calcAvgPlacement
+    calcAvgPlacement,
+    updateNames
 }
