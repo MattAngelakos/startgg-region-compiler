@@ -1,4 +1,6 @@
 import { ObjectId } from "mongodb";
+import dotenv from 'dotenv'
+dotenv.config();
 const atLeast = (val, checkVal, name) => {
     if(val.length < checkVal){
         throw (`${name} has less than 2 elements`);

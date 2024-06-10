@@ -1,7 +1,7 @@
 import { atLeast, doRequest, intCheck, numCheck, stringCheck, objectCheck, arrayCheck } from "../helpers.js"
 import { changeName } from "./players.js"
 import { getRegion } from "./regions.js"
-import { createPlayerLoss, createPlayerTourney, createPlayerWin, editPlayerLoss, editPlayerWin, getAllPlayerTournamentsInSeason, getPlayerLoss, getPlayerTourney, getPlayerWin, getSeason, getSeasonInfo } from "./seasons.js"
+import { addPlay, createPlayerCharacter, createPlayerLoss, createPlayerTourney, createPlayerWin, editPlayerCharacter, editPlayerLoss, editPlayerWin, getAllPlayerTournamentsInSeason, getPlayerCharacter, getPlayerLoss, getPlayerTourney, getPlayerWin, getSeason, getSeasonInfo } from "./seasons.js"
 import { createTournament, editTournamentEligible, getTournament } from "./tournaments.js"
 
 const createNewTournament = async (eventId, result, seasonIndex, placement, regionId, playerId, seasonName) => {
@@ -50,68 +50,6 @@ const createNewTournament = async (eventId, result, seasonIndex, placement, regi
     return tournament
 }
 
-const tournamentRequest = async (regionId, playerId, seasonName) => {
-//    let result = await getSeasonInfo(regionId, playerId, seasonName)
-//    const seasonIndex = await getSeason(regionId, playerId, seasonName)
-//    const query = `
-//     query Tourneys($id: ID!, $limit: Int!, $videogameId: ID!) {
-//         player(id: $id) {
-//             gamerTag
-//             recentStandings(videogameId: $videogameId, limit: $limit) {
-//                 placement
-//                 container {
-//                     ... on Event {
-//                         startAt
-//                         type
-//                         tournament {
-//                             name
-//                             addrState
-//                             id
-//                         }
-//                         isOnline
-//                         numEntrants
-//                     }
-//                 }
-//             }
-//         }
-//     }
-//     `
-//    const response = await doRequest(query, playerId, (result.region).gameId, 3, (result.region).players[result.index].seasons[seasonIndex].startDate, 0)
-//    const data = response.data
-//    let standings = data.player.recentStandings
-//    if(data.player.gamerTag != (result.region).players[result.index].gamerTag){
-//     await changeName(regionId, playerId, data.gamerTag)
-//    }
-//    standings = standings.filter(standing => standing.container.startAt >= (result.region).players[result.index].seasons[seasonIndex].startDate)
-//    standings = standings.filter(standing => standing.container.startAt <= (result.region).players[result.index].seasons[seasonIndex].endDate)
-//    standings = standings.filter(standing => standing.container.type === 1)
-//    let tournament
-//    let eligible
-//    for(const standing of standings){
-//         try{
-//             tournament = await getTournament(standing.container.tournament.id)
-//         }catch(e){
-//             if(!standing.container.tournament.addrState){
-//                 standing.container.tournament.addrState = "N/A"
-//             }
-//             tournament = await createTournament(standing.container.tournament.id, standing.container.tournament.name, standing.container.numEntrants, standing.container.tournament.addrState)
-//         }
-//         const eligibleIndex = tournament.eligible.findIndex(region => region.regionName === (result.region).regionName)
-//         if(eligibleIndex !== -1 && tournament.eligible[eligibleIndex].eligible){
-//             await createPlayerTourney(regionId, playerId, seasonName, tournament._id, standing.placement)
-//         }
-//         else{
-//             eligible = (!(!(result.region).onlineAllowed && standing.container.isOnline) && !((result.region).minimumEntrants > standing.container.numEntrants))
-//             tournament.eligible.push({regionName: (result.region).regionName, eligible: eligible})
-//             await editTournamentEligible(tournament._id, tournament.eligible)
-//             if(eligible){
-//                 await createPlayerTourney(regionId, playerId, seasonName, tournament._id, standing.placement)
-//             }
-//         }
-//    }
-//    return "successful"
-}
-
 const setsRequest = async (regionId, playerId, seasonName) => {
     let result = await getSeasonInfo(regionId, playerId, seasonName)
     const seasonIndex = await getSeason(regionId, playerId, seasonName)
@@ -137,6 +75,16 @@ const setsRequest = async (regionId, playerId, seasonName) => {
                                 }
                             }
                         }
+                        games{
+                            selections{
+                              entrant {
+                                  id
+                              }
+                              character{
+                                name
+                              }
+                            }
+                        }
                         id
                         winnerId
                         displayScore
@@ -156,12 +104,15 @@ const setsRequest = async (regionId, playerId, seasonName) => {
             }
         }
         `;
-        const response = await doRequest(query, playerId, (result.region).gameId, 50, (result.region).players[result.index].seasons[seasonIndex].startDate, page)
+        const response = await doRequest(query, playerId, (result.region).gameId, 30, (result.region).players[result.index].seasons[seasonIndex].startDate, page)
         const data = response.data
+        let games
         sets = data.player.sets.nodes
         let placement
         let tournament
         let eligibleIndex
+        let characterIndex
+        let entrantId
         sets = sets.filter(set => set.completedAt <= (result.region).players[result.index].seasons[seasonIndex].endDate)
         sets = sets.filter(set => set.event.type === 1)
         sets = sets.filter(set => set.displayScore !== "DQ")
@@ -183,6 +134,7 @@ const setsRequest = async (regionId, playerId, seasonName) => {
                         }
                     }
                     else{
+                        entrantId = slot.entrant.id
                         placement = slot.entrant.standing.placement
                     }
                 }
@@ -231,6 +183,22 @@ const setsRequest = async (regionId, playerId, seasonName) => {
                             } 
                             (result.region).players[result.index].seasons[seasonIndex].losses[lossIndex].tournaments.push({setId: set.id, tournamentId: set.event.tournament.id})
                             await editPlayerLoss(regionId, playerId, seasonName, opponentId, {tournaments: (result.region).players[result.index].seasons[seasonIndex].losses[lossIndex].tournaments})
+                        }
+                    }
+                    if(set.games){
+                        for(const game of set.games){
+                            if(game.selections){
+                                for (const participant of game.selections) {
+                                    if (participant.entrant.id === entrantId) {
+                                        try{
+                                            await addPlay(regionId, playerId, seasonName, participant.character.name)
+                                        }
+                                        catch (e){
+                                            await createPlayerCharacter(regionId, playerId, seasonName, participant.character.name)
+                                        }
+                                    }
+                                }             
+                            }
                         }
                     }
                 }
@@ -311,7 +279,6 @@ const calcAvgPlacement = async (tournaments, minimumEntrants, maximumEntrants) =
 
 export{
     setsRequest,
-    tournamentRequest,
     do_h2h,
     calcAvgPlacement
 }

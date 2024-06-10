@@ -33,7 +33,8 @@ const createSeason = async (regionId, playerId, seasonName, startYear, startMont
         endDate: endDate,
         tournaments: [],
         wins: [],
-        losses: []
+        losses: [],
+        characters: []
     }
     region.players[index].seasons.push(newSeason)
     await editRegion(regionId, region)
@@ -116,6 +117,13 @@ const editSeason = async (regionId, playerId, seasonName, editObject) => {
             objectCheck(element, "loss")
         }
         (result.region).players[result.index].seasons[seasonIndex].losses = editObject.losses
+    }
+    if("characters" in editObject){
+        arrayCheck(editObject.characters, "characters")
+        for (const element of editObject.characters) {
+            objectCheck(element, "character")
+        }
+        (result.region).players[result.index].seasons[seasonIndex].characters = editObject.characters
     }
     await editRegion(regionId, (result.region));
     return (result.region).players[result.index].seasons[seasonIndex];
@@ -371,175 +379,80 @@ const editPlayerLoss = async (regionId, playerId, seasonName, opponentId, editOb
     return await editPlayerRecord('losses', regionId, playerId, seasonName, opponentId, editObject);
 };
 
-// const createPlayerWin = async (regionId, playerId, seasonName, tourneyId, opponentName, opponentId) => {
-//     numCheck(opponentId, "opponentId")
-//     intCheck(opponentId, "opponentId")
-//     opponentName = stringCheck(opponentName, "opponentName")
-//     atLeast(opponentName, 1, "opponentName")
-//     let result = await getSeasonInfo(regionId, playerId, seasonName)
-//     const seasonIndex = await getSeason(regionId, playerId, seasonName)
-//     await getTournament(tourneyId)
-//     const newWin = {
-//         opponentId: opponentId,
-//         opponentName: opponentName,
-//         tournaments: [tourneyId]
-//     }
-//     const winIndex = (result.region).players[result.index].seasons[seasonIndex].wins.indexOf(win => win.opponentId === opponentId)
-//     if(winIndex !== -1){
-//         throw `win with id ${opponentId} already exists`
-//     }
-//     const setIndex = (result.region).players[result.index].seasons[seasonIndex].wins[winIndex].tournaments.indexOf(win => win.setId === setId)
-//     if(setIndex !== -1){
-//         throw `win with setId ${setId} already exists`
-//     }   
-//     (result.region).players[result.index].seasons[seasonIndex].wins.push(newWin)
-//     await editRegion(regionId, region)
-//     return newWin
-// }
+const createPlayerCharacter = async (regionId, playerId, seasonName, character) => {
+    character = stringCheck(character, "tourneyId")
+    atLeast(character, 1, "tourneyId")
+    let result = await getSeasonInfo(regionId, playerId, seasonName)
+    const seasonIndex = await getSeason(regionId, playerId, seasonName)
+    const newCharacter = {
+        characterName: character,
+        numOfPlays: 1 
+    }
+    const characterIndex = (result.region).players[result.index].seasons[seasonIndex].characters.findIndex(characters => characters.characterName === character)
+    if(characterIndex !== -1){
+        throw `character ${character} already exists`
+    } 
+    (result.region).players[result.index].seasons[seasonIndex].characters.push(newCharacter)
+    await editRegion(regionId, (result.region))
+    return newCharacter
+}
 
-// const getAllPlayerWins = async (regionId, playerId, seasonName) => {
-//     let region = await getRegion(regionId)
-//     let index = await getPlayer(regionId, playerId)
-//     let seasonIndex = await getSeason(regionId, playerId, seasonName)
-//     return region.players[index].seasons[seasonIndex].wins
-// } 
+const getPlayerCharacter = async (regionId, playerId, seasonName, characterName) => {
+    characterName = stringCheck(characterName)
+    atLeast(characterName, 1, "characterName")
+    let result = await getSeasonInfo(regionId, playerId, seasonName)
+    const seasonIndex = await getSeason(regionId, playerId, seasonName)
+    const characterIndex = (result.region).players[result.index].seasons[seasonIndex].characters.findIndex(character => character.characterName === characterName)
+    if(characterIndex === -1){
+        throw `character with name ${characterName} doesn't exist`
+    }   
+    return characterIndex
+}
 
-// const getPlayerWin = async (regionId, playerId, seasonName, opponentId) => {
-//     numCheck(opponentId, "opponentId")
-//     intCheck(opponentId, "opponentId")
-//     let result = await getSeasonInfo(regionId, playerId, seasonName)
-//     const seasonIndex = await getSeason(regionId, playerId, seasonName)
-//     const winIndex = (result.region).players[result.index].seasons[seasonIndex].wins.indexOf(win => win.opponentId === opponentId)
-//     if(winIndex === -1){
-//         throw `win with opponentId ${opponentId} doesn't exist`
-//     }   
-//     return winIndex
-// }
+const removePlayerCharacter = async (regionId, playerId, seasonName, characterName) => {
+    let result = await getSeasonInfo(regionId, playerId, seasonName)
+    const seasonIndex = await getSeason(regionId, playerId, seasonName)
+    const characterIndex = await getPlayerTourney(regionId, playerId, seasonName, characterName)  
+    (result.region).players[result.index].seasons[seasonIndex].characters.splice(characterIndex, 1)   
+    await editRegion(regionId, (result.region))
+    return (result.region).players[result.index].seasons[seasonIndex].characters
+}
 
-// const removePlayerWin = async (regionId, playerId, seasonName, opponentId) => {
-//     let result = await getSeasonInfo(regionId, playerId, seasonName)
-//     const seasonIndex = await getSeason(regionId, playerId, seasonName)
-//     const winIndex = await getPlayerWin(regionId, playerId, seasonName, opponentId) 
-//     (result.region).players[result.index].seasons[seasonIndex].wins.splice(winIndex, 1)   
-//     await editRegion(regionId, (result.region))
-//     return (result.region).players[result.index].seasons[seasonIndex].wins
-// }
+const editPlayerCharacter = async (regionId, playerId, seasonName, characterName, editObject) => {
+    let result = await getSeasonInfo(regionId, playerId, seasonName)
+    const seasonIndex = await getSeason(regionId, playerId, seasonName)
+    const characterIndex = await getPlayerCharacter(regionId, playerId, seasonName, characterName)
+    if("characterName" in editObject){
+        editObject.characterName = stringCheck(editObject.characterName)
+        atLeast(editObject.characterName, 1, "characterName")
+        const characterIndexDup = (result.region).players[result.index].seasons[seasonIndex].characters.findIndex(character => character.characterName === editObject.characterName)
+        if(characterIndexDup !== -1){
+            throw `character with name ${characterName} doesn't exist`
+        } 
+        (result.region).players[result.index].seasons[seasonIndex].characters[characterIndex].characterName = editObject.characterName
+    }
+    if("numOfPlays" in editObject){
+        numCheck(editObject.numOfPlays)
+        intCheck(editObject.numOfPlays)
+        if(editObject.numOfPlays <= 0) {
+            throw 'invalid plays'
+        }
+        (result.region).players[result.index].seasons[seasonIndex].characters[characterIndex].numOfPlays = editObject.numOfPlays
+    }
+    await editRegion(regionId, (result.region));
+    return (result.region).players[result.index].seasons[seasonIndex].characters[characterIndex];
+}
 
-// const editPlayerWin = async (regionId, playerId, seasonName, opponentId, editObject) => {
-//     let result = await getSeasonInfo(regionId, playerId, seasonName)
-//     const seasonIndex = await getSeason(regionId, playerId, seasonName)
-//     const winIndex = await getPlayerWin(regionId, playerId, seasonName, opponentId)
-//     if("opponentId" in editObject){
-//         numCheck(editObject.opponentId, "opponentId")
-//         intCheck(editObject.opponentId, "opponentId")
-//         const winIndexDup = (result.region).players[result.index].seasons[seasonIndex].wins.indexOf(win => win.opponentId === editObject.opponentId)
-//         if(winIndexDup !== -1){
-//             throw `win with id ${editObject.opponentId} already exists`
-//         } 
-//         (result.region).players[result.index].seasons[seasonIndex].wins[winIndex].opponentId = editObject.opponentId
-//     }
-//     if("opponentName" in editObject){
-//         editObject.opponentName = stringCheck(editObject.opponentName, "opponentName")
-//         atLeast(editObject.opponentName, 1, "opponentName")
-//         (result.region).players[result.index].seasons[seasonIndex].wins[winIndex].opponentName = editObject.opponentName
-//     }
-//     if("tournaments" in editObject){
-//         arrayCheck(editObject.tournaments, "tournaments")
-//         for (const element of editObject.tournaments) {
-//             objectCheck(element, "tournament")
-//         }
-//         (result.region).players[result.index].seasons[seasonIndex].wins[winIndex].tournaments = editObject.tournaments
-//     }
-//     await editRegion(regionId, (result.region));
-//     return (result.region).players[result.index].seasons[seasonIndex].wins[winIndex];
-// }
+const addPlay = async (regionId, playerId, seasonName, characterName) => {
+    let result = await getSeasonInfo(regionId, playerId, seasonName)
+    const seasonIndex = await getSeason(regionId, playerId, seasonName)
+    const characterIndex = await getPlayerCharacter(regionId, playerId, seasonName, characterName)
+    const newChar = {
+        numOfPlays: (result.region).players[result.index].seasons[seasonIndex].characters[characterIndex].numOfPlays + 1
+    }
+    await editPlayerCharacter(regionId, playerId, seasonName, (result.region).players[result.index].seasons[seasonIndex].characters[characterIndex].characterName, newChar)
 
-// const createPlayerLoss = async (regionId, playerId, seasonName, tourneyId, opponentName, opponentId, setId) => {
-//     numCheck(opponentId, "opponentId")
-//     intCheck(opponentId, "opponentId")
-//     numCheck(setId, "setId")
-//     intCheck(setId, "setId")
-//     opponentName = stringCheck(opponentName, "opponentName")
-//     atLeast(opponentName, 1, "opponentName")
-//     let result = await getSeasonInfo(regionId, playerId, seasonName)
-//     const seasonIndex = await getSeason(regionId, playerId, seasonName)
-//     await getTournament(tourneyId)
-//     const newLoss = {
-//         opponentId: opponentId,
-//         opponentName: opponentName,
-//         tournaments: [{
-//             setId: setId,
-//             tourneyId: tourneyId}]
-//     }
-//     const lossIndex = (result.region).players[result.index].seasons[seasonIndex].losses.indexOf(loss => loss.opponentId === opponentId)
-//     if(lossIndex !== -1){
-//         throw `win with id ${opponentId} already exists`
-//     }
-//     const setIndex = (result.region).players[result.index].seasons[seasonIndex].losses[lossIndex].tournaments.indexOf(loss => loss.setId === setId)
-//     if(setIndex !== -1){
-//         throw `win with setId ${setId} already exists`
-//     }  
-//     (result.region).players[result.index].seasons[seasonIndex].losses.push(newLoss)
-//     await editRegion(regionId, region)
-//     return newLoss
-// }
-
-// const getAllPlayerLosses = async (regionId, playerId, seasonName) => {
-//     let region = await getRegion(regionId)
-//     let index = await getPlayer(regionId, playerId)
-//     let seasonIndex = await getSeason(regionId, playerId, seasonName)
-//     return region.players[index].seasons[seasonIndex].losses
-// } 
-
-// const getPlayerLoss = async (regionId, playerId, seasonName, opponentId) => {
-//     numCheck(opponentId, "opponentId")
-//     intCheck(opponentId, "opponentId")
-//     let result = await getSeasonInfo(regionId, playerId, seasonName)
-//     const seasonIndex = await getSeason(regionId, playerId, seasonName)
-//     const lossIndex = (result.region).players[result.index].seasons[seasonIndex].losses.indexOf(loss => loss.opponentId === opponentId)
-//     if(lossIndex === -1){
-//         throw `loss with opponentId ${opponentId} doesn't exist`
-//     }   
-//     return lossIndex
-// }
-
-// const removePlayerLoss = async (regionId, playerId, seasonName, opponentId) => {
-//     let result = await getSeasonInfo(regionId, playerId, seasonName)
-//     const seasonIndex = await getSeason(regionId, playerId, seasonName)
-//     const lossIndex = await getPlayerLoss(regionId, playerId, seasonName, opponentId)  
-//     (result.region).players[result.index].seasons[seasonIndex].losses.splice(lossIndex, 1)   
-//     await editRegion(regionId, (result.region))
-//     return (result.region).players[result.index].seasons[seasonIndex].losses
-// }
-
-// const editPlayerLoss = async (regionId, playerId, seasonName, opponentId, editObject) => {
-//     let result = await getSeasonInfo(regionId, playerId, seasonName)
-//     const seasonIndex = await getSeason(regionId, playerId, seasonName)
-//     const lossIndex = await getPlayerLoss(regionId, playerId, seasonName, opponentId)
-//     if("opponentId" in editObject){
-//         numCheck(editObject.opponentId, "opponentId")
-//         intCheck(editObject.opponentId, "opponentId")
-//         const lossIndexDup = (result.region).players[result.index].seasons[seasonIndex].losses.indexOf(loss => loss.opponentId === editObject.opponentId)
-//         if(lossIndexDup !== -1){
-//             throw `loss with id ${editObject.opponentId} already exists`
-//         } 
-//         (result.region).players[result.index].seasons[seasonIndex].losses[lossIndex].opponentId = editObject.opponentId
-//     }
-//     if("opponentName" in editObject){
-//         editObject.opponentName = stringCheck(editObject.opponentName, "opponentName")
-//         atLeast(editObject.opponentName, 1, "opponentName")
-//         (result.region).players[result.index].seasons[seasonIndex].losses[lossIndex].opponentName = editObject.opponentName
-//     }
-//     if("tournaments" in editObject){
-//         arrayCheck(editObject.tournaments, "tournaments")
-//         for (const element of editObject.tournaments) {
-//             objectCheck(element, "tournament")
-//         }
-//         (result.region).players[result.index].seasons[seasonIndex].losses[lossIndex].tournaments = editObject.tournaments
-//     }
-//     await editRegion(regionId, (result.region));
-//     return (result.region).players[result.index].seasons[seasonIndex].losses[lossIndex];
-// }
+}
 
 export{
     createSeason,
@@ -568,5 +481,10 @@ export{
     getPlayerLoss,
     getAllPlayerLosses,
     removePlayerLoss,
-    editPlayerLoss
+    editPlayerLoss,
+    createPlayerCharacter,
+    getPlayerCharacter,
+    removePlayerCharacter,
+    editPlayerCharacter,
+    addPlay
 }
