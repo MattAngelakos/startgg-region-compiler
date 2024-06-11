@@ -236,6 +236,26 @@ const editTourneyId = async (regionId, playerId, seasonName, tourneyId, tourneyI
     return await editPlayerTourney(regionId, playerId, seasonName, tourneyId, {tourneyId: tourneyIdNew})
 }
 
+const filterPlayerTournaments = async (regionId, seasonName, tournamentIds) => {
+    arrayCheck(tournamentIds, "tourneyIds")
+    for(const id of tournamentIds){
+        numCheck(id, "tourneyId")
+        intCheck(id, "tourneyId")
+    }
+    let region = await getRegion(regionId)
+    for(let i = 0; i < region.players.length; i++){
+        try{
+            const seasonIndex = await getSeason(regionId, region.players[i].playerId, seasonName)
+            region.players[i].seasons[seasonIndex].tournaments = region.players[i].seasons[seasonIndex].tournaments.filter(tournament => !tournamentIds.includes(tournament.tourneyId))
+        }
+        catch(e){
+            console.error(e)
+        }
+    }
+    return region
+}
+
+
 export{
     createSeason,
     getAllSeasonsForPlayer,
@@ -253,5 +273,6 @@ export{
     removePlayerTourney,
     editPlayerTourney,
     editPlacement,
-    editTourneyId
+    editTourneyId,
+    filterPlayerTournaments
 }

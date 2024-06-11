@@ -84,11 +84,24 @@ const changeName = async (regionId, playerId, newName) => {
     return await editPlayer(regionId, playerId, {gamerTag: newName})
 }
 
+const filterPlayers = async (regionId, playerIds) => {
+    regionId = idCheck(regionId, "regionId")
+    arrayCheck(playerIds, "tourneyIds")
+    let region = await getRegion(regionId)
+    for(const id of playerIds){
+        numCheck(id, "playerId")
+        intCheck(id, "playerId")
+    }
+    region.players = region.players.filter(player => !playerIds.includes(player.playerId))  
+    return region
+}
+
 export{
     createPlayer,
     getPlayer,
     getAllPlayersByRegion,
     removePlayer,
     editPlayer,
-    changeName
+    changeName,
+    filterPlayers
 }

@@ -107,13 +107,8 @@ const setsRequest = async (regionId, playerId, seasonName) => {
         `;
         const response = await doRequest(query, playerId, (result.region).gameId, 30, (result.region).players[result.index].seasons[seasonIndex].startDate, page)
         const data = response.data
-        let games
         sets = data.player.sets.nodes
-        let placement
-        let tournament
-        let eligibleIndex
-        let characterIndex
-        let entrantId
+        let placement, tournament, eligibleIndex, entrantId
         sets = sets.filter(set => set.completedAt <= (result.region).players[result.index].seasons[seasonIndex].endDate)
         sets = sets.filter(set => set.event.type === 1)
         sets = sets.filter(set => set.displayScore !== "DQ")
