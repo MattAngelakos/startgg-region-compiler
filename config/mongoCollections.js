@@ -15,4 +15,4 @@ const getCollectionFn = (collection) => {
 
 export const players = getCollectionFn('players');
 export const tournaments = getCollectionFn('tournaments');
-export const h2h = getCollectionFn('h2h');
+export const users = getCollectionFn('users');

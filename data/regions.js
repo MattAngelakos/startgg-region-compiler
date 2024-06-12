@@ -2,10 +2,11 @@ import {players} from '../config/mongoCollections.js'
 import {ObjectId} from 'mongodb'
 import { arrayCheck, atLeast, booleanCheck, idCheck, intCheck, numCheck, objectCheck, stringCheck } from '../helpers.js'
 
-const createRegion = async (regionName, gameId, onlineAllowed, minimumEntrants) => {
+const createRegion = async (regionName, gameId, onlineAllowed, minimumEntrants, ownerId) => {
     regionName = stringCheck(regionName, "regionName")
     numCheck(gameId, "gameId")
     intCheck(gameId, "gameId")
+    idCheck(ownerId, "ownerId")
     booleanCheck(onlineAllowed, "onlineAllowed")
     numCheck(minimumEntrants, "minimumEntrants")
     intCheck(minimumEntrants, "minimumEntrants")
@@ -13,10 +14,12 @@ const createRegion = async (regionName, gameId, onlineAllowed, minimumEntrants) 
     const playerCollection = await players()
     let newRegion = {
         regionName: regionName,
+        ownerId: ownerId,
         players: [],
         gameId: gameId,
         onlineAllowed: onlineAllowed,
-        minimumEntrants: minimumEntrants
+        minimumEntrants: minimumEntrants,
+        numOfLikes: 0
     }
     const insertInfo = await playerCollection.insertOne(newRegion)
     if (!insertInfo.acknowledged || !insertInfo.insertedId)
