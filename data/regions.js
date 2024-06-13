@@ -1,4 +1,4 @@
-import {players} from '../config/mongoCollections.js'
+import {regions} from '../config/mongoCollections.js'
 import {ObjectId} from 'mongodb'
 import { arrayCheck, atLeast, booleanCheck, idCheck, intCheck, numCheck, objectCheck, stringCheck } from '../helpers.js'
 
@@ -11,17 +11,17 @@ const createRegion = async (regionName, gameId, onlineAllowed, minimumEntrants, 
     numCheck(minimumEntrants, "minimumEntrants")
     intCheck(minimumEntrants, "minimumEntrants")
     atLeast(minimumEntrants, 2, "minimumEntrants")
-    const playerCollection = await players()
+    const regionCollection = await regions()
     let newRegion = {
         regionName: regionName,
         ownerId: ownerId,
-        players: [],
+        seasons: [],
         gameId: gameId,
         onlineAllowed: onlineAllowed,
         minimumEntrants: minimumEntrants,
         numOfLikes: 0
     }
-    const insertInfo = await playerCollection.insertOne(newRegion)
+    const insertInfo = await regionCollection.insertOne(newRegion)
     if (!insertInfo.acknowledged || !insertInfo.insertedId)
         throw 'Could not add region'
     const newId = insertInfo.insertedId.toString()
@@ -30,7 +30,7 @@ const createRegion = async (regionName, gameId, onlineAllowed, minimumEntrants, 
 }
 
 const getAllRegions = async () => {
-    const regions = await players()
+    const regions = await regions()
     let regionList = await regions.find({}).toArray()
     if (!regionList) throw 'Could not get all region'
     return regionList
@@ -39,8 +39,8 @@ const getAllRegions = async () => {
 const getRegion = async (id) => {
     let x = new ObjectId()
     id = idCheck(id, "regionId")
-    const playerCollection = await players()
-    const findRegion = await playerCollection.findOne({_id: new ObjectId(id)})
+    const regionCollection = await regions()
+    const findRegion = await regionCollection.findOne({_id: new ObjectId(id)})
     if (findRegion === null) throw `No region with that id: ${id}`
     findRegion._id = findRegion._id.toString();
     return findRegion
@@ -48,8 +48,8 @@ const getRegion = async (id) => {
 
 const removeRegion = async (id) => {
     id = idCheck(id, "regionId")
-    const playerCollection = await players()
-    const deletionInfo = await playerCollection.findOneAndDelete({
+    const regionCollection = await regions()
+    const deletionInfo = await regionCollection.findOneAndDelete({
       _id: new ObjectId(id)
     })
     if (!deletionInfo) {
@@ -66,12 +66,12 @@ const editRegion = async (id, editObject) => {
         editObject.regionName = stringCheck(editObject.regionName, "regionName")
         updatedRegion.regionName = editObject.regionName
     }
-    if("players" in editObject){
-        arrayCheck(editObject.players, "players")
-        for (const element of editObject.players) {
-            objectCheck(element, "player")
+    if("seasons" in editObject){
+        arrayCheck(editObject.seasons, "seasons")
+        for (const element of editObject.seasons) {
+            objectCheck(element, "season")
         }
-        updatedRegion.players = editObject.players
+        updatedRegion.seasons = editObject.seasons
     }
     if("gameId" in editObject){
         numCheck(editObject.gameId, "gameId")
@@ -88,9 +88,9 @@ const editRegion = async (id, editObject) => {
         booleanCheck(editObject.onlineAllowed, "onlineAllowed")
         updatedRegion.onlineAllowed = editObject.onlineAllowed
     }
-    const playerCollection = await players();
+    const regionCollection = await regions();
     delete updatedRegion._id;
-    const updatedInfo = await playerCollection.findOneAndUpdate(
+    const updatedInfo = await regionCollection.findOneAndUpdate(
         {_id: new ObjectId(id)},
         {$set: updatedRegion},
         {returnDocument: 'after'}
