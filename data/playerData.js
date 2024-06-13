@@ -56,6 +56,7 @@ const setsRequest = async (regionId, playerId, seasonName) => {
     const seasonIndex = await getSeason(regionId, playerId, seasonName)
     let page = 1
     let sets = []
+    let setsLen = []
     do{
         const query = `
         query Sets($id: ID!, $limit: Int!, $updatedAfter: Timestamp!, $page: Int!) {
@@ -93,6 +94,7 @@ const setsRequest = async (regionId, playerId, seasonName) => {
                         event {
                             id
                             type
+                            name
                             videogame{
                                 id
                             }
@@ -105,14 +107,17 @@ const setsRequest = async (regionId, playerId, seasonName) => {
             }
         }
         `;
-        const response = await doRequest(query, playerId, (result.region).gameId, 30, (result.region).players[result.index].seasons[seasonIndex].startDate, page)
+        const response = await doRequest(query, playerId, (result.region).gameId, 20, (result.region).players[result.index].seasons[seasonIndex].startDate, page)
         const data = response.data
+        setsLen = data.player.sets.nodes
         sets = data.player.sets.nodes
         let placement, tournament, eligibleIndex, entrantId
         sets = sets.filter(set => set.completedAt <= (result.region).players[result.index].seasons[seasonIndex].endDate)
         sets = sets.filter(set => set.event.type === 1)
         sets = sets.filter(set => set.displayScore !== "DQ")
         sets = sets.filter(set => set.event.videogame.id === (result.region).gameId)
+        sets = sets.filter(set => !((set.event.name.toLowerCase()).includes('squad strike')))
+        sets = sets.filter(set => !((set.event.name.toLowerCase()).includes('budokai')))
         let opponentId, opponentName, winIndex, lossIndex, participant, won
         for(const set of sets){
             try{
@@ -204,7 +209,7 @@ const setsRequest = async (regionId, playerId, seasonName) => {
             }
         }
         page = page + 1
-    }while(sets.length !== 0)
+    }while(setsLen.length !== 0)
     return "success"
 }
 
@@ -238,8 +243,8 @@ const do_h2h = async (regionId, seasonName) => {
                     lossIndex = 0
                 }
                 newPlayerH2H[region.players[j].gamerTag] = {wins: winIndex, losses: lossIndex}
-                h2h[player.gamerTag] = newPlayerH2H
             }
+            h2h[player.gamerTag] = newPlayerH2H
         }
         catch(e){
             console.error(e)
@@ -248,6 +253,21 @@ const do_h2h = async (regionId, seasonName) => {
                 delete obj[player.gamerTag];
             });
             continue
+        }
+    }
+    return h2h
+}
+
+const finish_h2h = async (h2h) =>{
+    const keys = Object.keys(h2h)
+    for(let i = keys.length-1; i >= 0; i--){
+        //console.log(`i: ${keys[i]}`)
+        const keyI = keys[i];
+        for(let j = 0; j < i; j++){
+            //console.log(`j: ${keys[j]}`)
+            const keyJ = keys[j];
+            const temp = h2h[keyJ][keyI];
+            h2h[keyI][keyJ] = { wins: temp.losses, losses: temp.wins };
         }
     }
     return h2h
@@ -298,5 +318,6 @@ export{
     setsRequest,
     do_h2h,
     calcAvgPlacement,
-    updateNames
+    updateNames,
+    finish_h2h
 }

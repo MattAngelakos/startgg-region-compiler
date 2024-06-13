@@ -241,8 +241,7 @@ const loginUser = async (emailOrUsername, password) => {
     return user;
 };
 
-
-const exportedMethods = {
+export {
     getAllUsers,
     getUser,
     createUser,
@@ -252,4 +251,3 @@ const exportedMethods = {
     likeRegion,
     unlikeRegion
 }
-export default exportedMethods;

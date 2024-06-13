@@ -1,6 +1,13 @@
 import { ObjectId } from "mongodb";
 import dotenv from 'dotenv'
+import validator from 'validator';
 dotenv.config();
+let options = {
+    minLength: 8,
+    minUppercase: 1,
+    minNumber: 1,
+    minSymbols: 1
+};
 const atLeast = (val, checkVal, name) => {
     if(val.length < checkVal){
         throw (`${name} has less than 2 elements`);
