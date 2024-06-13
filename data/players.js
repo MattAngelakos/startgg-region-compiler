@@ -118,7 +118,8 @@ const createGameForPlayer = async (id, gameId) => {
             gameId: gameId,
             tournaments: [],
             wins: [],
-            losses: []
+            losses: [],
+            lastRecordedSet: {}
         }
         player.games.push(newGame)
         player = await editPlayer(id, player)
@@ -190,6 +191,10 @@ const editGameForPlayer = async (id, gameId, editObject) => {
             objectCheck(element, "loss")
         }
         player.games[index].losses = editObject.losses
+    }
+    if("lastRecordedSet" in editObject){
+        objectCheck(editObject.lastRecordedSet, "lastRecordedSet")
+        player.games[index].lastRecordedSet = editObject.lastRecordedSet
     }
     await editPlayer(id, player)
     return player.games[index]
