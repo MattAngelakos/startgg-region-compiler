@@ -312,7 +312,7 @@ const createPlayerRecord = async (type, playerId, gameId, tourneyId, eventId, op
     const newRecord = {
         opponentId: opponentId,
         opponentName: opponentName,
-        tournaments: [{ setId: setId, tourneyId: tourneyId, eventId: eventId, type: type}]
+        tournaments: [{ setId: setId, tourneyId: tourneyId, eventId: eventId, type: type, matches: []}]
     };
     records.push(newRecord);
     await editPlayer(playerId, player);
@@ -386,6 +386,106 @@ const editRecordForPlayer = async (type, id, gameId, opponentId, editObject) => 
     await editPlayer(id, player);
     return records[recordIndex];
 } 
+
+const createPlayerMatch = async (playerId, gameId, opponentId, setId, type, playerChar, opponentChar, matchNum, stage) => {
+    if(type !== 'win' && type != 'loss'){
+        throw 'invalid type'
+    }
+    playerChar = stringCheck(playerChar, "playerChar");
+    atLeast(playerChar, 1, "playerChar");
+    opponentChar = stringCheck(opponentChar, "opponentChar");
+    atLeast(opponentChar, 1, "opponentChar");
+    stage = stringCheck(stage, "stage");
+    atLeast(stage, 1, "stage");
+    numCheck(matchNum, "matchNum")
+    intCheck(matchNum, "matchNum")
+    if(matchNum <= 0){
+        throw 'invalid matchNum'
+    }
+    const player = await getPlayer(playerId)
+    const gameIndex = await getGameFromPlayer(playerId, gameId)
+    const opponentIndex = await getRecordFromPlayer(type, playerId, gameId, opponentId)
+    const index = player.games[gameIndex].opponents[opponentIndex].tournaments.findIndex(set => set.setId === setId)
+    if(index === -1){
+        throw `${setId} of ${opponentId} does not exist`
+    }
+    const matchIndex = player.games[gameIndex].opponents[opponentIndex].tournaments[index].matches.findIndex(match => match.matchNum === matchNum)
+    if(matchIndex !== -1){
+        throw `${matchNum} of ${setId} does exist`
+    }
+    const match = {
+        playerChar: playerChar,
+        opponentChar: opponentChar,
+        stage: stage,
+        type: type,
+        matchNum: matchNum
+    }
+    player.games[gameIndex].opponents[opponentIndex].tournaments[index].matches.push(match)
+    await editPlayer(playerId, player)
+    return match
+}
+
+const getMatchFromPlayer = async (playerId, gameId, opponentId, setId, matchNum) => {
+    const matches = await getAllMatchesForPlayer(playerId, gameId, opponentId, setId)
+    const index = matches.findIndex(match => match.matchNum === matchNum)
+    if(index !== -1){
+        throw `${matchNum} of ${setId} does exist`
+    }
+    return index
+}
+
+const getAllMatchesForPlayer = async (playerId, gameId, opponentId, setId) => {
+    const player = await getPlayer(playerId)
+    const gameIndex = await getGameFromPlayer(playerId, gameId)
+    const opponentIndex = await getRecordFromPlayer(type, playerId, gameId, opponentId)
+    const index = player.games[gameIndex].opponents[opponentIndex].tournaments.findIndex(set => set.setId === setId)
+    return player.games[gameIndex].opponents[opponentIndex].tournaments[index].matches
+}
+
+const removeMatchFromPlayer = async (playerId, gameId, opponentId, setId, matchNum) => {
+    const player = await getPlayer(playerId)
+    const gameIndex = await getGameFromPlayer(playerId, gameId)
+    const opponentIndex = await getRecordFromPlayer(type, playerId, gameId, opponentId)
+    const setIndex = player.games[gameIndex].opponents[opponentIndex].tournaments.findIndex(set => set.setId === setId)
+    const index = await getMatchFromPlayer(playerId, gameId, opponentId, setId, matchNum)
+    player.games[gameIndex].opponents[opponentIndex].tournaments[setIndex].matches.splice(index, 1)
+    await editPlayer(playerId, player)
+    return player.games[gameIndex].opponents[opponentIndex].tournaments[setIndex].matches
+}
+
+const editMatches = async (playerId, gameId, opponentId, setId, matchNum, editObject) => {
+    const player = await getPlayer(playerId)
+    const gameIndex = await getGameFromPlayer(playerId, gameId)
+    const opponentIndex = await getRecordFromPlayer(type, playerId, gameId, opponentId)
+    const setIndex = player.games[gameIndex].opponents[opponentIndex].tournaments.findIndex(set => set.setId === setId)
+    const index = await getMatchFromPlayer(playerId, gameId, opponentId, setId, matchNum)
+    if('playerChar' in editObject){
+        editObject.playerChar = stringCheck(editObject.playerChar, "playerChar");
+        atLeast(editObject.playerChar, 1, "playerChar");
+        player.games[gameIndex].opponents[opponentIndex].tournaments[setIndex].matches[index].playerChar = editObject.playerChar
+    }
+    if('opponentChar' in editObject){
+        editObject.opponentChar = stringCheck(editObject.opponentChar, "opponentChar");
+        atLeast(editObject.opponentChar, 1, "opponentChar");
+        player.games[gameIndex].opponents[opponentIndex].tournaments[setIndex].matches[index].opponentChar = editObject.opponentChar   
+    }
+    if('stage' in editObject){
+        editObject.stage = stringCheck(editObject.stage, "stage");
+        atLeast(editObject.stage, 1, "stage");
+        player.games[gameIndex].opponents[opponentIndex].tournaments[setIndex].matches[index].stage = editObject.stage   
+    }
+    if('type' in editObject){
+        editObject.type = stringCheck(editObject.type, "type");
+        atLeast(editObject.type, 1, "type");
+        editObject.type = editObject.type.toLowerCase()
+        if(editObject.type !== 'win' && editObject.type != 'loss'){
+            throw 'invalid type'
+        }
+        player.games[gameIndex].opponents[opponentIndex].tournaments[setIndex].matches[index].type = editObject.type 
+    }
+    await editPlayer(playerId, player)
+    return player.games[gameIndex].opponents[opponentIndex].tournaments[setIndex].matches[index]
+}
 
 const createPlayerWin = async (playerId, gameId, tourneyId, eventId, opponentName, opponentId, setId) => {
     return await createPlayerRecord('win', playerId, gameId, tourneyId, eventId, opponentName, opponentId, setId);
@@ -534,5 +634,10 @@ export{
     getAllPlayersBySeason,
     getPlayerFromSeason,
     removePlayerFromSeason,
-    filterPlayers
+    filterPlayers,
+    createPlayerMatch,
+    getMatchFromPlayer,
+    getAllMatchesForPlayer,
+    removeMatchFromPlayer,
+    editMatches
 }

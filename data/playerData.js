@@ -1,6 +1,6 @@
 import { atLeast, doRequest, intCheck, numCheck, stringCheck, objectCheck, arrayCheck } from "../helpers.js"
 import { addPlay, createPlayerCharacter } from "./characters.js"
-import { createPlayerLoss, createPlayerWin, createTournamentForPlayer, editPlayer, editPlayerLoss, editPlayerWin, getGameFromPlayer, getPlayer, getPlayerLoss, getPlayerWin, getTournamentFromPlayer } from "./players.js"
+import { createPlayerLoss, createPlayerMatch, createPlayerWin, createTournamentForPlayer, editPlayer, editPlayerLoss, editPlayerWin, getGameFromPlayer, getPlayer, getPlayerLoss, getPlayerWin, getTournamentFromPlayer } from "./players.js"
 import { getRegion } from "./regions.js"
 import { getSeason } from "./seasons.js"
 import { createEvent, createTournament, getMainTournament, getTournament } from "./tournaments.js"
@@ -73,6 +73,9 @@ const setsRequest = async (playerId, videogameId) => {
                         }
                         games{
                             winnerId
+                            stage{
+                                name
+                            }
                             selections{
                               entrant {
                                   id
@@ -166,7 +169,7 @@ const setsRequest = async (playerId, videogameId) => {
                         if(setIndex !== -1){
                             throw `win with setId ${setId} already exists`
                         } 
-                        player.games[gameIndex].opponents[winIndex].tournaments.push({setId: set.id, tournamentId: set.event.tournament.id, eventId: set.event.id, type: 'win'})
+                        player.games[gameIndex].opponents[winIndex].tournaments.push({setId: set.id, tournamentId: set.event.tournament.id, eventId: set.event.id, type: 'win', matches: []})
                         await editPlayerWin(playerId, videogameId, opponentId, {tournaments: player.games[gameIndex].opponents[winIndex].tournaments})
                     }
                 }
@@ -180,11 +183,15 @@ const setsRequest = async (playerId, videogameId) => {
                         if(setIndex !== -1){
                             throw `loss with setId ${setId} already exists`
                         } 
-                        player.games[gameIndex].opponents[lossIndex].tournaments.push({setId: set.id, tournamentId: set.event.tournament.id, eventId: set.event.id, type: 'loss'})
+                        player.games[gameIndex].opponents[lossIndex].tournaments.push({setId: set.id, tournamentId: set.event.tournament.id, eventId: set.event.id, type: 'loss', matches: []})
                         await editPlayerLoss(playerId, videogameId, opponentId, {tournaments: player.games[gameIndex].opponents[lossIndex].tournaments})
                     }
                 }
+                let playerChar
+                let opponentChar
+                let stage
                 if(set.games){
+                    let i = 1
                     for(const game of set.games){
                         if(game.selections){
                             for (const participant of game.selections) {
@@ -196,9 +203,38 @@ const setsRequest = async (playerId, videogameId) => {
                                         console.log(e)
                                         await createPlayerCharacter(playerId, videogameId, participant.character.name)
                                     }
+                                    playerChar = participant.character.name
+                                }
+                                else{
+                                    opponentChar = participant.character.name
                                 }
                             }             
                         }
+                        try{
+                            stage = game.stage.name
+                        }catch(e){
+                            stage = "N/A"
+                        }
+                        if(playerChar === null){
+                            playerChar = "N/A"
+                        }
+                        if(opponentChar === null){
+                            opponentChar = "N/A"
+                        }
+                        if(stage === null){
+                            stage = "N/A"
+                        }
+                        try{
+                            if(game.winnerId === entrantId){
+                                await createPlayerMatch(playerId, videogameId, opponentId, set.id, 'win', playerChar, opponentChar, i, stage)
+                            }
+                            else{
+                                await createPlayerMatch(playerId, videogameId, opponentId, set.id, 'loss', playerChar, opponentChar, i, stage) 
+                            }
+                        }catch(e){
+                            console.log(e)
+                        }
+                        i=i+1
                     }
                 }
             }
