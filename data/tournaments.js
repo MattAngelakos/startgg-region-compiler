@@ -6,6 +6,9 @@ const createTournament = async (id, tournamentName, addrState) => {
     numCheck(id, "tournamentId")
     intCheck(id, "tournamentId")
     tournamentName = stringCheck(tournamentName, "tournamentName")
+    if(addrState === null){
+        addrState = "N/A"
+    }
     addrState = stringCheck(addrState, "addrState")
     atLeast(addrState, 1, "addrState")
     const tournamentCollection = await tournaments()

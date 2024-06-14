@@ -120,6 +120,7 @@ const createGameForPlayer = async (id, gameId) => {
             tournaments: [],
             wins: [],
             losses: [],
+            characters: [],
             lastRecordedSet: {}
         }
         player.games.push(newGame)
@@ -191,11 +192,18 @@ const editGameForPlayer = async (id, gameId, editObject) => {
         player.games[index].wins = editObject.wins
     }
     if('losses' in editObject){
-        arrayCheck(editObject.losses, "games")
+        arrayCheck(editObject.losses, "losses")
         for (const element of editObject.losses) {
             objectCheck(element, "loss")
         }
         player.games[index].losses = editObject.losses
+    }
+    if('characters' in editObject){
+        arrayCheck(editObject.characters, "characters")
+        for (const element of editObject.characters) {
+            objectCheck(element, "character")
+        }
+        player.games[index].characters = editObject.characters
     }
     if("lastRecordedSet" in editObject){
         objectCheck(editObject.lastRecordedSet, "lastRecordedSet")

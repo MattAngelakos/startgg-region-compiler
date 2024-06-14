@@ -1,5 +1,5 @@
 import { atLeast, doRequest, intCheck, numCheck, stringCheck, objectCheck, arrayCheck } from "../helpers.js"
-//import { addPlay, createPlayerCharacter } from "./characters.js"
+import { addPlay, createPlayerCharacter } from "./characters.js"
 import { createPlayerLoss, createPlayerWin, createTournamentForPlayer, editPlayer, editPlayerLoss, editPlayerWin, getGameFromPlayer, getPlayer, getPlayerLoss, getPlayerWin, getTournamentFromPlayer } from "./players.js"
 import { getRegion } from "./regions.js"
 import { getSeason } from "./seasons.js"
@@ -40,23 +40,6 @@ const createNewTournament = async (eventId, placement, playerId) => {
         foundEvent = await createEvent(tournament._id, eventId, event.name, event.isOnline, event.videogame.id, event.startAt, event.numEntrants)
     }
     const newTournament = await createTournamentForPlayer(playerId, foundEvent.videogameId, tournament._id, eventId, placement)
-    //     if(!event.tournament.addrState){
-    //         event.tournament.addrState = "N/A"
-    //     }            
-    //     tournament = await createTournament(event.tournament.id, event.tournament.name, event.numEntrants, event.tournament.addrState)
-    // }
-    // const eligibleIndex = tournament.eligible.findIndex(region => region.regionName === (result.region).regionName)
-    // if(eligibleIndex !== -1 && tournament.eligible[eligibleIndex].eligible){
-    //     await createPlayerTourney(regionId, playerId, seasonName, tournament._id, placement)
-    // }
-    // else{
-    //     eligible = (!(!(result.region).onlineAllowed && event.isOnline) && !((result.region).minimumEntrants > event.numEntrants))
-    //     tournament.eligible.push({regionName: (result.region).regionName, eligible: eligible})
-    //     await editTournamentEligible(tournament._id, tournament.eligible)
-    //     if(eligible){
-    //         await createPlayerTourney(regionId, playerId, seasonName, tournament._id, placement)
-    //     }
-    // }   
     return newTournament
 }
 
@@ -123,7 +106,7 @@ const setsRequest = async (playerId, videogameId) => {
         setsLen = data.player.sets.nodes
         sets = data.player.sets.nodes
         let placement, tournament, entrantId
-        //sets = sets.filter(set => set.completedAt <= (result.region).players[result.index].seasons[seasonIndex].endDate)
+        sets = sets.filter(set => set.event !== null);
         sets = sets.filter(set => set.event.type === 1)
         sets = sets.filter(set => set.displayScore !== "DQ")
         sets = sets.filter(set => set.event.videogame.id === videogameId)
@@ -197,32 +180,36 @@ const setsRequest = async (playerId, videogameId) => {
                             throw `loss with setId ${setId} already exists`
                         } 
                         player.games[gameIndex].losses[lossIndex].tournaments.push({setId: set.id, tournamentId: set.event.tournament.id, eventId: set.event.id})
-                        await editPlayerLoss(playerId, videogameId, opponentId, {tournaments: player.games[gameIndex].wins[winIndex].tournaments})
+                        await editPlayerLoss(playerId, videogameId, opponentId, {tournaments: player.games[gameIndex].losses[lossIndex].tournaments})
                     }
                 }
-                // if(set.games){
-                //     for(const game of set.games){
-                //         if(game.selections){
-                //             for (const participant of game.selections) {
-                //                 if (participant.entrant.id === entrantId) {
-                //                     try{
-                //                         await addPlay(regionId, playerId, seasonName, participant.character.name)
-                //                     }
-                //                     catch (e){
-                //                         await createPlayerCharacter(regionId, playerId, seasonName, participant.character.name)
-                //                     }
-                //                 }
-                //             }             
-                //         }
-                //     }
-                // }
+                if(set.games){
+                    for(const game of set.games){
+                        if(game.selections){
+                            for (const participant of game.selections) {
+                                if (participant.entrant.id === entrantId) {
+                                    try{
+                                        await addPlay(playerId, videogameId, participant.character.name)
+                                    }
+                                    catch (e){
+                                        console.log(e)
+                                        await createPlayerCharacter(playerId, videogameId, participant.character.name)
+                                    }
+                                }
+                            }             
+                        }
+                    }
+                }
             }
             catch(e){
                 console.error(e)
             }
         }
         page = page + 1
-    }while(page !== 2)
+        if(page % 15 === 0){
+            await new Promise(r => setTimeout(r, 60000));
+        }
+    }while(page !== 10)
     player.games[gameIndex].lastRecordedSet = newLastRecordedSet
     await editPlayer(playerId, player)
     return "success"
