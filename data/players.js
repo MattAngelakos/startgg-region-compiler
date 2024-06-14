@@ -118,8 +118,7 @@ const createGameForPlayer = async (id, gameId) => {
         const newGame = {
             gameId: gameId,
             tournaments: [],
-            wins: [],
-            losses: [],
+            opponents: [],
             characters: [],
             lastRecordedSet: {}
         }
@@ -184,19 +183,12 @@ const editGameForPlayer = async (id, gameId, editObject) => {
         }
         player.games[index].tournaments = editObject.tournaments
     }
-    if('wins' in editObject){
-        arrayCheck(editObject.wins, "wins")
-        for (const element of editObject.wins) {
-            objectCheck(element, "win")
+    if('opponents' in editObject){
+        arrayCheck(editObject.opponents, "opponents")
+        for (const element of editObject.opponents) {
+            objectCheck(element, "opponent")
         }
-        player.games[index].wins = editObject.wins
-    }
-    if('losses' in editObject){
-        arrayCheck(editObject.losses, "losses")
-        for (const element of editObject.losses) {
-            objectCheck(element, "loss")
-        }
-        player.games[index].losses = editObject.losses
+        player.games[index].opponents = editObject.opponents
     }
     if('characters' in editObject){
         arrayCheck(editObject.characters, "characters")
@@ -303,7 +295,7 @@ const validateOpponentAndSetId = (opponentId, setId) => {
 };
 
 const createPlayerRecord = async (type, playerId, gameId, tourneyId, eventId, opponentName, opponentId, setId) => {
-    if(type !== 'wins' && type != 'losses'){
+    if(type !== 'win' && type != 'loss'){
         throw 'invalid type'
     }
     validateOpponentAndSetId(opponentId, setId);
@@ -312,15 +304,15 @@ const createPlayerRecord = async (type, playerId, gameId, tourneyId, eventId, op
     let player = await getPlayer(playerId)
     const gameIndex = await getGameFromPlayer(playerId, gameId)
     await getTournament(tourneyId, eventId);
-    const records = player.games[gameIndex][type];
+    const records = player.games[gameIndex].opponents;
     const recordIndex = records.findIndex(record => record.opponentId === opponentId);
     if (recordIndex !== -1) {
-        throw `${type.slice(0, -1)} with id ${opponentId} already exists`;
+        throw `${type} with id ${opponentId} already exists`;
     }
     const newRecord = {
         opponentId: opponentId,
         opponentName: opponentName,
-        tournaments: [{ setId: setId, tourneyId: tourneyId, eventId: eventId }]
+        tournaments: [{ setId: setId, tourneyId: tourneyId, eventId: eventId, type: type}]
     };
     records.push(newRecord);
     await editPlayer(playerId, player);
@@ -328,7 +320,7 @@ const createPlayerRecord = async (type, playerId, gameId, tourneyId, eventId, op
 };
 
 const getAllRecordsForPlayer = async (type, id, gameId) => {
-    if(type !== 'wins' && type !== 'losses'){
+    if(type !== 'win' && type !== 'loss'){
         throw 'invalid type'
     }
     numCheck(id, "playerId")
@@ -337,11 +329,11 @@ const getAllRecordsForPlayer = async (type, id, gameId) => {
     intCheck(gameId, 'gameId')
     const player = await getPlayer(id)
     const gameIndex = await getGameFromPlayer(id, gameId)
-    return player.games[gameIndex][type]
+    return player.games[gameIndex].opponents
 }
 
 const getRecordFromPlayer = async (type, id, gameId, opponentId) => {
-    if(type !== 'wins' && type != 'losses'){
+    if(type !== 'win' && type != 'loss'){
         throw 'invalid type'
     }
     numCheck(id, "playerId")
@@ -352,7 +344,7 @@ const getRecordFromPlayer = async (type, id, gameId, opponentId) => {
     intCheck(opponentId, 'eventId')
     const player = await getPlayer(id)
     const gameIndex = await getGameFromPlayer(id, gameId)
-    const index = player.games[gameIndex][type].findIndex(record => record.opponentId === opponentId)
+    const index = player.games[gameIndex].opponents.findIndex(record => record.opponentId === opponentId)
     if(index === -1){
         throw `${type} of ${opponentId} does not exist`
     }
@@ -360,24 +352,24 @@ const getRecordFromPlayer = async (type, id, gameId, opponentId) => {
 }
 
 const removeRecordFromPlayer = async (type, id, gameId, opponentId) => {
-    if(type !== 'wins' && type != 'losses'){
+    if(type !== 'win' && type != 'loss'){
         throw 'invalid type'
     }
     let player = await getPlayer(id)
     const gameIndex = await getGameFromPlayer(id, gameId)
     const index = await getRecordFromPlayer(id, gameId, opponentId)
-    player.games[gameIndex][type].splice(index, 1)
+    player.games[gameIndex].opponents.splice(index, 1)
     await editPlayer(id, player)
-    return player.games[gameIndex][type]
+    return player.games[gameIndex].opponents
 }
 
 const editRecordForPlayer = async (type, id, gameId, opponentId, editObject) => {
-    if(type !== 'wins' && type != 'losses'){
+    if(type !== 'win' && type != 'loss'){
         throw 'invalid type'
     }
     let player = await getPlayer(id)
     const gameIndex = await getGameFromPlayer(id, gameId)
-    let records = player.games[gameIndex][type];
+    let records = player.games[gameIndex].opponents;
     const recordIndex = await getRecordFromPlayer(type, id, gameId, opponentId);
     if ("opponentName" in editObject) {
         editObject.opponentName = stringCheck(editObject.opponentName, "opponentName");
@@ -396,43 +388,43 @@ const editRecordForPlayer = async (type, id, gameId, opponentId, editObject) => 
 } 
 
 const createPlayerWin = async (playerId, gameId, tourneyId, eventId, opponentName, opponentId, setId) => {
-    return await createPlayerRecord('wins', playerId, gameId, tourneyId, eventId, opponentName, opponentId, setId);
+    return await createPlayerRecord('win', playerId, gameId, tourneyId, eventId, opponentName, opponentId, setId);
 };
 
 const createPlayerLoss = async (playerId, gameId, tourneyId, eventId, opponentName, opponentId, setId) => {
-    return await createPlayerRecord('losses', playerId, gameId, tourneyId, eventId, opponentName, opponentId, setId);
+    return await createPlayerRecord('loss', playerId, gameId, tourneyId, eventId, opponentName, opponentId, setId);
 };
 
 const getAllPlayerWins = async (id, gameId) => {
-    return await getAllRecordsForPlayer('wins', id, gameId);
+    return await getAllRecordsForPlayer('win', id, gameId);
 };
 
 const getAllPlayerLosses = async (id, gameId) => {
-    return await getAllRecordsForPlayer('losses', id, gameId);
+    return await getAllRecordsForPlayer('loss', id, gameId);
 };
 
 const getPlayerWin = async (id, gameId, opponentId) => {
-    return await getRecordFromPlayer('wins', id, gameId, opponentId);
+    return await getRecordFromPlayer('win', id, gameId, opponentId);
 };
 
 const getPlayerLoss = async (id, gameId, opponentId) => {
-    return await getRecordFromPlayer('losses', id, gameId, opponentId);
+    return await getRecordFromPlayer('loss', id, gameId, opponentId);
 };
 
 const removePlayerWin = async (id, gameId, opponentId) => {
-    return await removeRecordFromPlayer('wins', id, gameId, opponentId);
+    return await removeRecordFromPlayer('win', id, gameId, opponentId);
 };
 
 const removePlayerLoss = async (id, gameId, opponentId) => {
-    return await removeRecordFromPlayer('losses', id, gameId, opponentId);
+    return await removeRecordFromPlayer('loss', id, gameId, opponentId);
 };
 
 const editPlayerWin = async (id, gameId, opponentId, editObject) => {
-    return await editRecordForPlayer('wins', id, gameId, opponentId, editObject);
+    return await editRecordForPlayer('win', id, gameId, opponentId, editObject);
 };
 
 const editPlayerLoss = async (id, gameId, opponentId, editObject) => {
-    return await editRecordForPlayer('losses', id, gameId, opponentId, editObject);
+    return await editRecordForPlayer('loss', id, gameId, opponentId, editObject);
 };
 
 //data functions for regions collection

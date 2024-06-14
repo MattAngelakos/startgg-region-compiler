@@ -72,6 +72,7 @@ const setsRequest = async (playerId, videogameId) => {
                             }
                         }
                         games{
+                            winnerId
                             selections{
                               entrant {
                                   id
@@ -161,12 +162,12 @@ const setsRequest = async (playerId, videogameId) => {
                     catch(e){
                         console.log(e)
                         winIndex = await getPlayerWin(playerId, videogameId, opponentId)
-                        const setIndex = player.games[gameIndex].wins[winIndex].tournaments.findIndex(win => win.setId === set.id)
+                        const setIndex = player.games[gameIndex].opponents[winIndex].tournaments.findIndex(win => win.setId === set.id)
                         if(setIndex !== -1){
                             throw `win with setId ${setId} already exists`
                         } 
-                        player.games[gameIndex].wins[winIndex].tournaments.push({setId: set.id, tournamentId: set.event.tournament.id, eventId: set.event.id})
-                        await editPlayerWin(playerId, videogameId, opponentId, {tournaments: player.games[gameIndex].wins[winIndex].tournaments})
+                        player.games[gameIndex].opponents[winIndex].tournaments.push({setId: set.id, tournamentId: set.event.tournament.id, eventId: set.event.id, type: 'win'})
+                        await editPlayerWin(playerId, videogameId, opponentId, {tournaments: player.games[gameIndex].opponents[winIndex].tournaments})
                     }
                 }
                 else{
@@ -175,12 +176,12 @@ const setsRequest = async (playerId, videogameId) => {
                     }
                     catch(e){
                         lossIndex = await getPlayerLoss(playerId, videogameId, opponentId)
-                        const setIndex = player.games[gameIndex].losses[lossIndex].tournaments.findIndex(win => win.setId === set.id)
+                        const setIndex = player.games[gameIndex].opponents[lossIndex].tournaments.findIndex(win => win.setId === set.id)
                         if(setIndex !== -1){
                             throw `loss with setId ${setId} already exists`
                         } 
-                        player.games[gameIndex].losses[lossIndex].tournaments.push({setId: set.id, tournamentId: set.event.tournament.id, eventId: set.event.id})
-                        await editPlayerLoss(playerId, videogameId, opponentId, {tournaments: player.games[gameIndex].losses[lossIndex].tournaments})
+                        player.games[gameIndex].opponents[lossIndex].tournaments.push({setId: set.id, tournamentId: set.event.tournament.id, eventId: set.event.id, type: 'loss'})
+                        await editPlayerLoss(playerId, videogameId, opponentId, {tournaments: player.games[gameIndex].opponents[lossIndex].tournaments})
                     }
                 }
                 if(set.games){
