@@ -6,8 +6,6 @@ const createTournament = async (id, tournamentName, addrState) => {
     numCheck(id, "tournamentId")
     intCheck(id, "tournamentId")
     tournamentName = stringCheck(tournamentName, "tournamentName")
-    numCheck(entrants, "entrants")
-    intCheck(entrants, "entrants")
     addrState = stringCheck(addrState, "addrState")
     atLeast(addrState, 1, "addrState")
     const tournamentCollection = await tournaments()
@@ -15,7 +13,6 @@ const createTournament = async (id, tournamentName, addrState) => {
         _id: id,
         tournamentName: tournamentName,
         addrState: addrState,
-        isOnline: isOnline,
         events: []
     }
     const insertInfo = await tournamentCollection.insertOne(newTourney)
@@ -39,7 +36,6 @@ const getMainTournament = async (id) => {
     const tournamentCollection = await tournaments()
     const findTournament = await tournamentCollection.findOne({_id: id})
     if (findTournament === null) throw `No tournament with that id: ${id}`
-    findTournament._id = findTournament._id.toString();
     return findTournament
 };
 
@@ -57,9 +53,8 @@ const removeTournament = async (id) => {
 };
 
 const editTournament = async (id, editObject) => {
-    id = stringCheck(id, "tourneyId")
-    atLeast(id, 1, "tourneyId")
-    id = parseInt(id)
+    numCheck(id, "tourneyId")
+    intCheck(id, "tourneyId")
     objectCheck(editObject, "tourneyEditObject")  
     let updatedTournament = await getMainTournament(id)
     if("tournamentName" in editObject){
@@ -137,7 +132,7 @@ const createEvent = async (tournamentId, eventId, eventName, isOnline, videogame
         throw `event of ${eventId} already exists`
     }
     tournament.events.push(newEvent)
-    await editTournamentEvents(tournamentId, {events: tournament.events})
+    await editTournamentEvents(tournamentId, tournament.events)
     return newEvent
 }
 
@@ -147,6 +142,8 @@ const getAllEvents = async (tournamentId) => {
 }
 
 const getTournament = async (tournamentId, eventId) => {
+    numCheck(tournamentId, "tournamentId")
+    intCheck(tournamentId, "tournamentId")
     numCheck(eventId, "eventId")
     intCheck(eventId, "eventId")
     let tournament = await getMainTournament(tournamentId)

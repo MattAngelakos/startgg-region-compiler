@@ -25,7 +25,7 @@ const createPlayer = async (playerId) => {
     const insertInfo = await playerCollection.insertOne(newPlayer)
     if (!insertInfo.acknowledged || !insertInfo.insertedId)
         throw 'Could not add region'
-    const newId = insertInfo.insertedId.toString()
+    const newId = insertInfo.insertedId
     const player = await getPlayer(newId)
     return player;
 }
@@ -38,17 +38,18 @@ const getAllPlayers = async () => {
 }
 
 const getPlayer = async (id) => {
-    let x = new ObjectId()
-    id = idCheck(id, "playerId")
+    numCheck(id, "playerId")
+    intCheck(id, "playerId")
     const playerCollection = await players()
-    const findPlayer = await playerCollection.findOne({_id: new ObjectId(id)})
+    const findPlayer = await playerCollection.findOne({_id: id})
     if (findPlayer === null) throw `No region with that id: ${id}`
     findPlayer._id = findPlayer._id.toString();
     return findPlayer
 };
 
 const removePlayer = async (id) => {
-    id = idCheck(id, "playerId")
+    numCheck(id, "playerId")
+    intCheck(id, "playerId")
     const playerCollection = await players()
     const regionCollection = await regions();
     const deletionInfo = await playerCollection.findOneAndDelete({
@@ -68,9 +69,8 @@ const removePlayer = async (id) => {
 };
 
 const editPlayer = async (id, editObject) => {
-    id = stringCheck(id, "playerId")
-    atLeast(id, 1, "playerId")
-    id = parseInt(id)
+    numCheck(id, "playerId")
+    intCheck(id, "playerId")
     objectCheck(editObject, "playerEditObject")  
     let updatedPlayer = await getPlayer(id)
     if("gamerTag" in editObject){
@@ -101,7 +101,8 @@ const editPlayer = async (id, editObject) => {
 
 //data functions for games of user
 const createGameForPlayer = async (id, gameId) => {
-    id = idCheck(id, "playerId")
+    numCheck(id, 'gameId')
+    intCheck(id, 'gameId')   
     numCheck(gameId, 'gameId')
     intCheck(gameId, 'gameId')
     let player = await getPlayer(id)
@@ -113,8 +114,8 @@ const createGameForPlayer = async (id, gameId) => {
     }
     `
     const data = await doRequest(query, gameId, 0, 0, 0, 0)
-    if(data.data.player.name){
-        newGame = {
+    if(data.data.videogame.name){
+        const newGame = {
             gameId: gameId,
             tournaments: [],
             wins: [],
@@ -131,13 +132,15 @@ const createGameForPlayer = async (id, gameId) => {
 }
 
 const getAllGamesForPlayer = async (id) => {
-    id = idCheck(id, "playerId")
+    numCheck(playerId, "playerId")
+    intCheck(playerId, "playerId")
     const player = await getPlayer(id)
     return player.games
 }
 
 const getGameFromPlayer = async (id, gameId) => {
-    id = idCheck(id, "playerId")
+    numCheck(id, "playerId")
+    intCheck(id, "playerId")
     numCheck(id, "gameId")
     intCheck(id, "gameId")
     const player = await getPlayer(id)
@@ -149,7 +152,8 @@ const getGameFromPlayer = async (id, gameId) => {
 }
 
 const removeGameFromPlayer = async (id, gameId) => {
-    id = idCheck(id, "playerId")
+    numCheck(id, "playerId")
+    intCheck(id, "playerId")
     numCheck(id, "gameId")
     intCheck(id, "gameId")
     let player = await getPlayer(id)
@@ -163,7 +167,8 @@ const removeGameFromPlayer = async (id, gameId) => {
 }
 
 const editGameForPlayer = async (id, gameId, editObject) => {
-    id = idCheck(id, "playerId")
+    numCheck(id, "playerId")
+    intCheck(id, "playerId")
     numCheck(id, "gameId")
     intCheck(id, "gameId")
     let player = await getPlayer(id)
@@ -202,10 +207,12 @@ const editGameForPlayer = async (id, gameId, editObject) => {
 
 //data functions for tournaments of game
 const createTournamentForPlayer = async (id, gameId, tournamentId, eventId, placement) => {
-    id = idCheck(id, "playerId")
+    numCheck(id, "playerId")
+    intCheck(id, "playerId")
     numCheck(gameId, 'gameId')
     intCheck(gameId, 'gameId')
-    tournamentId = idCheck(tournamentId, 'tournamentId')
+    numCheck(tournamentId, "tournamentId")
+    intCheck(tournamentId, "tournamentId")
     numCheck(eventId, 'eventId')
     intCheck(eventId, 'eventId')
     numCheck(placement, 'placement')
@@ -216,7 +223,7 @@ const createTournamentForPlayer = async (id, gameId, tournamentId, eventId, plac
     let player = await getPlayer(id)
     const gameIndex = await getGameFromPlayer(id, gameId)
     await getTournament(tournamentId, eventId)
-    newTournament = {
+    const newTournament = {
         tournamentId: tournamentId,
         eventId: eventId,
         placement: placement
@@ -227,7 +234,8 @@ const createTournamentForPlayer = async (id, gameId, tournamentId, eventId, plac
 }
 
 const getAllTournamentsForPlayer = async (id, gameId) => {
-    id = idCheck(id, "playerId")
+    numCheck(id, "playerId")
+    intCheck(id, "playerId")
     numCheck(gameId, 'gameId')
     intCheck(gameId, 'gameId')
     const player = await getPlayer(id)
@@ -236,10 +244,12 @@ const getAllTournamentsForPlayer = async (id, gameId) => {
 }
 
 const getTournamentFromPlayer = async (id, gameId, tournamentId, eventId) => {
-    id = idCheck(id, "playerId")
+    numCheck(id, "playerId")
+    intCheck(id, "playerId")
     numCheck(gameId, 'gameId')
     intCheck(gameId, 'gameId')
-    tournamentId = idCheck(tournamentId, 'tournamentId')
+    numCheck(tournamentId, "tournamentId")
+    intCheck(tournamentId, "tournamentId")
     numCheck(eventId, 'eventId')
     intCheck(eventId, 'eventId')
     const player = await getPlayer(id)
@@ -292,9 +302,9 @@ const createPlayerRecord = async (type, playerId, gameId, tourneyId, eventId, op
     opponentName = stringCheck(opponentName, "opponentName");
     atLeast(opponentName, 1, "opponentName");
     let player = await getPlayer(playerId)
-    const gameIndex = await getGameFromPlayer(id, gameId)
+    const gameIndex = await getGameFromPlayer(playerId, gameId)
     await getTournament(tourneyId, eventId);
-    const records = player.game[gameIndex][type];
+    const records = player.games[gameIndex][type];
     const recordIndex = records.findIndex(record => record.opponentId === opponentId);
     if (recordIndex !== -1) {
         throw `${type.slice(0, -1)} with id ${opponentId} already exists`;
@@ -313,7 +323,8 @@ const getAllRecordsForPlayer = async (type, id, gameId) => {
     if(type !== 'wins' && type !== 'losses'){
         throw 'invalid type'
     }
-    id = idCheck(id, "playerId")
+    numCheck(id, "playerId")
+    intCheck(id, "playerId")
     numCheck(gameId, 'gameId')
     intCheck(gameId, 'gameId')
     const player = await getPlayer(id)
@@ -325,7 +336,8 @@ const getRecordFromPlayer = async (type, id, gameId, opponentId) => {
     if(type !== 'wins' && type != 'losses'){
         throw 'invalid type'
     }
-    id = idCheck(id, "playerId")
+    numCheck(id, "playerId")
+    intCheck(id, "playerId")
     numCheck(gameId, 'gameId')
     intCheck(gameId, 'gameId')
     numCheck(opponentId, 'eventId')

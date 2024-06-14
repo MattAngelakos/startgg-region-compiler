@@ -1,4 +1,5 @@
-import { atLeast, createDate, idCheck, intCheck, numCheck, stringCheck } from '../helpers.js'
+import { arrayCheck, atLeast, createDate, idCheck, intCheck, numCheck, stringCheck } from '../helpers.js'
+import { getPlayer } from './players.js'
 import { editRegion, getRegion } from './regions.js'
 
 const createSeason = async (regionId, seasonName, startYear, startMonth, startDay, endYear, endMonth, endDay) => {
@@ -17,7 +18,8 @@ const createSeason = async (regionId, seasonName, startYear, startMonth, startDa
     let newSeason = {
         seasonName: seasonName,
         startDate: startDate,
-        endDate: endDate
+        endDate: endDate,
+        players: []
     }
     region.seasons.push(newSeason)
     await editRegion(regionId, region)
@@ -77,6 +79,14 @@ const editSeason = async (regionId, seasonName, editObject) => {
         }
         region.seasons[seasonIndex].endDate = editObject.endDate
     } 
+    if("players" in editObject){
+        arrayCheck(editObject.players, "players")
+        for (const element of editObject.players) {
+            numCheck(element, "player")
+            intCheck(element, "player")
+        }
+        region.seasons[seasonIndex].players = editObject.players
+    }
     // if("characters" in editObject){
     //     arrayCheck(editObject.characters, "characters")
     //     for (const element of editObject.characters) {
@@ -107,6 +117,21 @@ const editSeasonTimeframe = async (regionId, seasonName, startYear, startMonth, 
     const endDate = createDate(endMonth, endDay, endYear)
     return await editSeason(regionId, seasonName, {startDate: startDate, endDate: endDate})
 }
+
+const addPlayers = async (regionId, seasonName, playerIds) => {
+    let region = await getRegion(regionId)
+    const seasonIndex = await getSeason(regionId, seasonName)
+    for(const playerId of playerIds){
+        try{
+            await getPlayer(playerId)
+            region.seasons[seasonIndex].players.push(playerId)
+        }
+        catch(e){
+            console.log(e)
+        }
+    }
+    await editRegion(regionId,region)
+}
 // const filterPlayerTournaments = async (regionId, seasonName, tournamentIds) => {
 //     arrayCheck(tournamentIds, "tourneyIds")
 //     for(const id of tournamentIds){
@@ -136,5 +161,6 @@ export{
     editSeasonName,
     editSeasonStart,
     editSeasonEnd,
-    editSeasonTimeframe
+    editSeasonTimeframe,
+    addPlayers
 }

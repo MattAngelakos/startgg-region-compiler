@@ -1,9 +1,9 @@
 import { atLeast, doRequest, intCheck, numCheck, stringCheck, objectCheck, arrayCheck } from "../helpers.js"
-import { addPlay, createPlayerCharacter } from "./characters.js"
-import { createPlayerLoss, createPlayerWin, createTournamentForPlayer, editPlayerLoss, editPlayerWin, getGameFromPlayer, getPlayer, getPlayerLoss, getPlayerWin, getTournamentFromPlayer } from "./players.js"
+//import { addPlay, createPlayerCharacter } from "./characters.js"
+import { createPlayerLoss, createPlayerWin, createTournamentForPlayer, editPlayer, editPlayerLoss, editPlayerWin, getGameFromPlayer, getPlayer, getPlayerLoss, getPlayerWin, getTournamentFromPlayer } from "./players.js"
 import { getRegion } from "./regions.js"
-import { createPlayerTourney, getPlayerTourney, getSeason, getSeasonInfo } from "./seasons.js"
-import { createEvent, createTournament, getTournament } from "./tournaments.js"
+import { getSeason } from "./seasons.js"
+import { createEvent, createTournament, getMainTournament, getTournament } from "./tournaments.js"
 
 const createNewTournament = async (eventId, placement, playerId) => {
     const query = `query Event($id: ID!) {
@@ -70,7 +70,7 @@ const setsRequest = async (playerId, videogameId) => {
     let newLastRecordedSet
     do{
         const query = `
-        query Sets($id: ID!, $limit: Int!, $updatedAfter: Timestamp!, $page: Int!) {
+        query Sets($id: ID!, $limit: Int!, $page: Int!) {
             player(id: $id) {
                 sets(perPage: $limit, page: $page) {
                     nodes {
@@ -176,6 +176,7 @@ const setsRequest = async (playerId, videogameId) => {
                         await createPlayerWin(playerId, videogameId, set.event.tournament.id, set.event.id, opponentName, opponentId, set.id)
                     }
                     catch(e){
+                        console.log(e)
                         winIndex = await getPlayerWin(playerId, videogameId, opponentId)
                         const setIndex = player.games[gameIndex].wins[winIndex].tournaments.findIndex(win => win.setId === set.id)
                         if(setIndex !== -1){
@@ -221,7 +222,9 @@ const setsRequest = async (playerId, videogameId) => {
             }
         }
         page = page + 1
-    }while(setsLen.length !== 0)
+    }while(page !== 2)
+    player.games[gameIndex].lastRecordedSet = newLastRecordedSet
+    await editPlayer(playerId, player)
     return "success"
 }
 
