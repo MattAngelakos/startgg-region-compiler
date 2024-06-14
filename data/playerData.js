@@ -1,67 +1,78 @@
 import { atLeast, doRequest, intCheck, numCheck, stringCheck, objectCheck, arrayCheck } from "../helpers.js"
-import { addPlay, createPlayerCharacter } from "./characters.js"
-import { createPlayerLoss, createPlayerWin, editPlayerLoss, editPlayerWin, getPlayerLoss, getPlayerWin } from "./records.js"
+//import { addPlay, createPlayerCharacter } from "./characters.js"
+import { createPlayerLoss, createPlayerWin, createTournamentForPlayer, editPlayer, editPlayerLoss, editPlayerWin, getGameFromPlayer, getPlayer, getPlayerLoss, getPlayerWin, getTournamentFromPlayer } from "./players.js"
 import { getRegion } from "./regions.js"
-import { createPlayerTourney, getPlayerTourney, getSeason, getSeasonInfo } from "./seasons.js"
-import { createTournament, editTournamentEligible, getTournament } from "./tournaments.js"
+import { getSeason } from "./seasons.js"
+import { createEvent, createTournament, getMainTournament, getTournament } from "./tournaments.js"
 
-const createNewTournament = async (eventId, result, seasonIndex, placement, regionId, playerId, seasonName) => {
+const createNewTournament = async (eventId, placement, playerId) => {
     const query = `query Event($id: ID!) {
         event(id: $id) {
           startAt
           type
+          name
           tournament {
             name
             addrState
             id
           }
           isOnline
+          videogame{
+            id
+          }
           numEntrants
         }
       }`
-      const response = await doRequest(query, eventId, 0, 0, (result.region).players[result.index].seasons[seasonIndex].startDate, 0)
-      const data = response.data
-      let event = data.event
-      let tournament
-      let eligible = false
-      if(event.startAt >= (result.region).players[result.index].seasons[seasonIndex].startDate
-      && event.startAt <= (result.region).players[result.index].seasons[seasonIndex].endDate
-      && event.type === 1){
-        try{
-            tournament = await getTournament(event.tournament.id)
-        }catch(e){
-            if(!event.tournament.addrState){
-                event.tournament.addrState = "N/A"
-            }
-            tournament = await createTournament(event.tournament.id, event.tournament.name, event.numEntrants, event.tournament.addrState)
-        }
-        const eligibleIndex = tournament.eligible.findIndex(region => region.regionName === (result.region).regionName)
-        if(eligibleIndex !== -1 && tournament.eligible[eligibleIndex].eligible){
-            await createPlayerTourney(regionId, playerId, seasonName, tournament._id, placement)
-        }
-        else{
-            eligible = (!(!(result.region).onlineAllowed && event.isOnline) && !((result.region).minimumEntrants > event.numEntrants))
-            tournament.eligible.push({regionName: (result.region).regionName, eligible: eligible})
-            await editTournamentEligible(tournament._id, tournament.eligible)
-            if(eligible){
-                await createPlayerTourney(regionId, playerId, seasonName, tournament._id, placement)
-            }
-        }   
+    const response = await doRequest(query, eventId, 0, 0, 0, 0)
+    const data = response.data
+    let event = data.event
+    let tournament
+    try{
+        tournament = await getMainTournament(event.tournament.id)
+    }catch(e){
+        tournament = await createTournament(event.tournament.id, event.tournament.name, event.tournament.addrState)
     }
-    return tournament
+    let foundEvent
+    try{
+        foundEvent = await getTournament(tournament._id, eventId)
+    }
+    catch(e){
+        foundEvent = await createEvent(tournament._id, eventId, event.name, event.isOnline, event.videogame.id, event.startAt, event.numEntrants)
+    }
+    const newTournament = await createTournamentForPlayer(playerId, foundEvent.videogameId, tournament._id, eventId, placement)
+    //     if(!event.tournament.addrState){
+    //         event.tournament.addrState = "N/A"
+    //     }            
+    //     tournament = await createTournament(event.tournament.id, event.tournament.name, event.numEntrants, event.tournament.addrState)
+    // }
+    // const eligibleIndex = tournament.eligible.findIndex(region => region.regionName === (result.region).regionName)
+    // if(eligibleIndex !== -1 && tournament.eligible[eligibleIndex].eligible){
+    //     await createPlayerTourney(regionId, playerId, seasonName, tournament._id, placement)
+    // }
+    // else{
+    //     eligible = (!(!(result.region).onlineAllowed && event.isOnline) && !((result.region).minimumEntrants > event.numEntrants))
+    //     tournament.eligible.push({regionName: (result.region).regionName, eligible: eligible})
+    //     await editTournamentEligible(tournament._id, tournament.eligible)
+    //     if(eligible){
+    //         await createPlayerTourney(regionId, playerId, seasonName, tournament._id, placement)
+    //     }
+    // }   
+    return newTournament
 }
 
-const setsRequest = async (regionId, playerId, seasonName) => {
-    let result = await getSeasonInfo(regionId, playerId, seasonName)
-    const seasonIndex = await getSeason(regionId, playerId, seasonName)
+const setsRequest = async (playerId, videogameId) => {
+    let player = await getPlayer(playerId)
+    const gameIndex = await getGameFromPlayer(playerId, videogameId)
     let page = 1
     let sets = []
     let setsLen = []
+    let i = true
+    let newLastRecordedSet
     do{
         const query = `
-        query Sets($id: ID!, $limit: Int!, $updatedAfter: Timestamp!, $page: Int!) {
+        query Sets($id: ID!, $limit: Int!, $page: Int!) {
             player(id: $id) {
-                sets(perPage: $limit, page: $page, filters: {updatedAfter: $updatedAfter}) {
+                sets(perPage: $limit, page: $page) {
                     nodes {
                         slots {
                             entrant {
@@ -107,21 +118,27 @@ const setsRequest = async (regionId, playerId, seasonName) => {
             }
         }
         `;
-        const response = await doRequest(query, playerId, (result.region).gameId, 20, (result.region).players[result.index].seasons[seasonIndex].startDate, page)
+        const response = await doRequest(query, playerId, videogameId, 20, 0, page)
         const data = response.data
         setsLen = data.player.sets.nodes
         sets = data.player.sets.nodes
-        let placement, tournament, eligibleIndex, entrantId
-        sets = sets.filter(set => set.completedAt <= (result.region).players[result.index].seasons[seasonIndex].endDate)
+        let placement, tournament, entrantId
+        //sets = sets.filter(set => set.completedAt <= (result.region).players[result.index].seasons[seasonIndex].endDate)
         sets = sets.filter(set => set.event.type === 1)
         sets = sets.filter(set => set.displayScore !== "DQ")
-        sets = sets.filter(set => set.event.videogame.id === (result.region).gameId)
+        sets = sets.filter(set => set.event.videogame.id === videogameId)
         sets = sets.filter(set => !((set.event.name.toLowerCase()).includes('squad strike')))
-        sets = sets.filter(set => !((set.event.name.toLowerCase()).includes('budokai')))
         let opponentId, opponentName, winIndex, lossIndex, participant, won
         for(const set of sets){
             try{
-                result = await getSeasonInfo(regionId, playerId, seasonName)
+                player = await getPlayer(playerId)
+                if(set === player.games[gameIndex].lastRecordedSet){
+                    return 
+                }
+                if(i){
+                    newLastRecordedSet = set
+                    i = false
+                }
                 for (const slot of set.slots) {
                     participant = slot.entrant.participants[0];
                     if (participant.player.id !== playerId) {
@@ -140,76 +157,74 @@ const setsRequest = async (regionId, playerId, seasonName) => {
                     }
                 }
                 try{
-                    tournament = await getTournament(set.event.tournament.id)
+                    tournament = await getTournament(set.event.tournament.id, set.event.id)
                 }catch(e){
-                    tournament = await createNewTournament(set.event.id, result, seasonIndex, placement, regionId, playerId, seasonName)
+                    tournament = await createNewTournament(set.event.id, placement, playerId)
                 }
-                eligibleIndex = tournament.eligible.findIndex(region => region.regionName === (result.region).regionName)
                 try{
-                    await getPlayerTourney(regionId, playerId, seasonName, set.event.tournament.id)
+                    await getTournamentFromPlayer(playerId, videogameId, set.event.tournament.id, set.event.id)
                 }
                 catch(e){
                     try{
-                        if(tournament.eligible[eligibleIndex].eligible){
-                            await createPlayerTourney(regionId, playerId, seasonName, tournament._id, placement)
-                        }
+                        await createTournamentForPlayer(playerId, videogameId, set.event.tournament.id, set.event.id, placement)
                     }catch(e){
                         console.error(e)
                     }
                 }
-                if(tournament.eligible[eligibleIndex].eligible){
-                    if(won){
-                        try{
-                            await createPlayerWin(regionId, playerId, seasonName, set.event.tournament.id, opponentName, opponentId, set.id)
-                        }
-                        catch(e){
-                            winIndex = await getPlayerWin(regionId, playerId, seasonName, opponentId)
-                            const setIndex = (result.region).players[result.index].seasons[seasonIndex].wins[winIndex].tournaments.findIndex(win => win.setId === set.id)
-                            if(setIndex !== -1){
-                                throw `win with setId ${setId} already exists`
-                            } 
-                            (result.region).players[result.index].seasons[seasonIndex].wins[winIndex].tournaments.push({setId: set.id, tournamentId: set.event.tournament.id})
-                            await editPlayerWin(regionId, playerId, seasonName, opponentId, {tournaments: (result.region).players[result.index].seasons[seasonIndex].wins[winIndex].tournaments})
-                        }
+                if(won){
+                    try{
+                        await createPlayerWin(playerId, videogameId, set.event.tournament.id, set.event.id, opponentName, opponentId, set.id)
                     }
-                    else{
-                        try{
-                            await createPlayerLoss(regionId, playerId, seasonName, set.event.tournament.id, opponentName, opponentId, set.id)
-                        }
-                        catch(e){
-                            lossIndex = await getPlayerLoss(regionId, playerId, seasonName, opponentId)
-                            const setIndex = (result.region).players[result.index].seasons[seasonIndex].losses[lossIndex].tournaments.findIndex(loss => loss.setId === set.id)
-                            if(setIndex !== -1){
-                                throw `loss with setId ${setId} already exists`
-                            } 
-                            (result.region).players[result.index].seasons[seasonIndex].losses[lossIndex].tournaments.push({setId: set.id, tournamentId: set.event.tournament.id})
-                            await editPlayerLoss(regionId, playerId, seasonName, opponentId, {tournaments: (result.region).players[result.index].seasons[seasonIndex].losses[lossIndex].tournaments})
-                        }
-                    }
-                    if(set.games){
-                        for(const game of set.games){
-                            if(game.selections){
-                                for (const participant of game.selections) {
-                                    if (participant.entrant.id === entrantId) {
-                                        try{
-                                            await addPlay(regionId, playerId, seasonName, participant.character.name)
-                                        }
-                                        catch (e){
-                                            await createPlayerCharacter(regionId, playerId, seasonName, participant.character.name)
-                                        }
-                                    }
-                                }             
-                            }
-                        }
+                    catch(e){
+                        console.log(e)
+                        winIndex = await getPlayerWin(playerId, videogameId, opponentId)
+                        const setIndex = player.games[gameIndex].wins[winIndex].tournaments.findIndex(win => win.setId === set.id)
+                        if(setIndex !== -1){
+                            throw `win with setId ${setId} already exists`
+                        } 
+                        player.games[gameIndex].wins[winIndex].tournaments.push({setId: set.id, tournamentId: set.event.tournament.id, eventId: set.event.id})
+                        await editPlayerWin(playerId, videogameId, opponentId, {tournaments: player.games[gameIndex].wins[winIndex].tournaments})
                     }
                 }
+                else{
+                    try{
+                        await createPlayerLoss(playerId, videogameId, set.event.tournament.id, set.event.id, opponentName, opponentId, set.id)
+                    }
+                    catch(e){
+                        lossIndex = await getPlayerLoss(playerId, videogameId, opponentId)
+                        const setIndex = player.games[gameIndex].losses[lossIndex].tournaments.findIndex(win => win.setId === set.id)
+                        if(setIndex !== -1){
+                            throw `loss with setId ${setId} already exists`
+                        } 
+                        player.games[gameIndex].losses[lossIndex].tournaments.push({setId: set.id, tournamentId: set.event.tournament.id, eventId: set.event.id})
+                        await editPlayerLoss(playerId, videogameId, opponentId, {tournaments: player.games[gameIndex].wins[winIndex].tournaments})
+                    }
+                }
+                // if(set.games){
+                //     for(const game of set.games){
+                //         if(game.selections){
+                //             for (const participant of game.selections) {
+                //                 if (participant.entrant.id === entrantId) {
+                //                     try{
+                //                         await addPlay(regionId, playerId, seasonName, participant.character.name)
+                //                     }
+                //                     catch (e){
+                //                         await createPlayerCharacter(regionId, playerId, seasonName, participant.character.name)
+                //                     }
+                //                 }
+                //             }             
+                //         }
+                //     }
+                // }
             }
             catch(e){
                 console.error(e)
             }
         }
         page = page + 1
-    }while(setsLen.length !== 0)
+    }while(page !== 2)
+    player.games[gameIndex].lastRecordedSet = newLastRecordedSet
+    await editPlayer(playerId, player)
     return "success"
 }
 
@@ -303,7 +318,7 @@ const updateNames = async (regionId) => {
     regionId = idCheck(regionId, "regionId")
     let region = await getRegion(regionId)
     for(let i = 0; i < region.players.length; i++){
-        numCheck(region.players[i].playerId, "playerId")
+        numCheck(region.players[i], "playerId")
         intCheck(region.players[i], "playerId")
         const data = await doRequest(query, region.players[i].playerId, 0, 0, 0, 0)
         if(data.data.player.gamerTag !== region.players[i].gamerTag){

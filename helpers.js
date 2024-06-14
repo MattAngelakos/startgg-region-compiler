@@ -61,7 +61,7 @@ function createDate(month, day, year) {
     intCheck(month, "month")
     intCheck(day, "day")
     intCheck(year, "year")
-    const date = new Date(year, month - 1, day, 6, 0, 0, 0);
+    const date = new Date(year, month - 1, day, 0, 0, 0, 0);
     const Timestamp = Math.floor(date.getTime() / 1000)
     return Timestamp;
 }
