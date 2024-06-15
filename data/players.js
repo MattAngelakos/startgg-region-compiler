@@ -312,7 +312,7 @@ const createPlayerRecord = async (type, playerId, gameId, tourneyId, eventId, op
     const newRecord = {
         opponentId: opponentId,
         opponentName: opponentName,
-        tournaments: [{ setId: setId, tourneyId: tourneyId, eventId: eventId, type: type, matches: []}]
+        tournaments: [{ setId: setId, tournamentId: tourneyId, eventId: eventId, type: type, matches: []}]
     };
     records.push(newRecord);
     await editPlayer(playerId, player);

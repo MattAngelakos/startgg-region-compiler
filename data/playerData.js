@@ -252,6 +252,44 @@ const setsRequest = async (playerId, videogameId) => {
     return "success"
 }
 
+const seasonFilter = async(regionId, seasonName, playerId) => {
+    let region = await getRegion(regionId)
+    const seasonIndex = await getSeason(regionId, seasonName)
+    const index = region.seasons[seasonIndex].players.findIndex(player => player === playerId)
+    if(index === -1){
+        throw `${playerId} does not exist in season ${seasonName} for region ${regionId}`
+    }
+    let player = await getPlayer(playerId);
+    const videogameIndex = await getGameFromPlayer(playerId, region.gameId);
+    const filteredTournaments = await Promise.all(player.games[videogameIndex].tournaments.map(async tournament => {
+        const currTournament = await getMainTournament(tournament.tournamentId);
+        const eventIndex = await getTournament(tournament.tournamentId, tournament.eventId);
+        const isValid = (currTournament.events[eventIndex].startAt >= region.seasons[seasonIndex].startDate) &&
+                        (currTournament.events[eventIndex].startAt < region.seasons[seasonIndex].endDate) &&
+                        (region.onlineAllowed || !currTournament.events[eventIndex].isOnline) &&
+                        (currTournament.events[eventIndex].entrants >= region.minimumEntrants);
+                        
+        return isValid ? tournament : null;
+    }));
+    player.games[videogameIndex].tournaments = filteredTournaments.filter(tournament => tournament !== null);
+    for (let i = 0; i < player.games[videogameIndex].opponents.length; i++) {
+        const record = player.games[videogameIndex].opponents[i];
+        const filteredTournaments = await Promise.all(record.tournaments.map(async tournament => {
+            const currTournament = await getMainTournament(tournament.tournamentId);
+            const eventIndex = await getTournament(tournament.tournamentId, tournament.eventId);
+            const isValid = (currTournament.events[eventIndex].startAt >= region.seasons[seasonIndex].startDate) &&
+                            (currTournament.events[eventIndex].startAt < region.seasons[seasonIndex].endDate) &&
+                            (region.onlineAllowed || !currTournament.events[eventIndex].isOnline) &&
+                            (currTournament.events[eventIndex].entrants >= region.minimumEntrants);
+            return isValid ? tournament : null;
+        }));
+        player.games[videogameIndex].opponents[i].tournaments = filteredTournaments.filter(tournament => tournament !== null);
+    }
+    player.games[videogameIndex].opponents = player.games[videogameIndex].opponents.filter(opponent => opponent.tournaments.length !== 0)
+    return player;
+    
+}
+
 const do_h2h = async (regionId, seasonName) => {
     let seasonIndex, winIndex, lossIndex
     let h2h = {}
@@ -358,5 +396,6 @@ export{
     do_h2h,
     calcAvgPlacement,
     updateNames,
-    finish_h2h
+    finish_h2h,
+    seasonFilter
 }
