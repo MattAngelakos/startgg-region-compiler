@@ -210,6 +210,10 @@ const setsRequest = async (playerId, videogameId) => {
                                 }
                             }             
                         }
+                        else{
+                            playerChar = "N/A"
+                            opponentChar = "N/A"
+                        }
                         try{
                             stage = game.stage.name
                         }catch(e){
@@ -291,35 +295,42 @@ const seasonFilter = async(regionId, seasonName, playerId) => {
 }
 
 const do_h2h = async (regionId, seasonName) => {
-    let seasonIndex, winIndex, lossIndex
+    let opponentIndex
     let h2h = {}
     let region = await getRegion(regionId)
     seasonName = stringCheck(seasonName, "seasonName")
     atLeast(seasonName, 1, "seasonName")
+    const seasonIndex = await getSeason(regionId, seasonName)
     let i = 0
-    for(const player of region.players){
+    for(const playerId of region.seasons[seasonIndex].players){
         try{
-            seasonIndex = await getSeason(regionId, player.playerId, seasonName)
+            const player = await seasonFilter(regionId, seasonName, playerId)
             i = i+1
             let newPlayerH2H = {
-                id: player.playerId,
+                id: playerId,
             }
-            for (let j = i; j < region.players.length; j++) {
+            for (let j = i; j < region.seasons[seasonIndex].players.length; j++) {
+                let wins
+                let losses
+                let opponent
                 try{
-                    winIndex = await getPlayerWin(regionId, player.playerId, seasonName, region.players[j].playerId)
-                    winIndex = player.seasons[seasonIndex].wins[winIndex].tournaments.length
+                    const gameIndex = await getGameFromPlayer(playerId, region.gameId)
+                    opponent = await getPlayer(region.seasons[seasonIndex].players[j])
+                    opponentIndex = player.games[gameIndex].opponents.findIndex(record => record.opponentId === region.seasons[seasonIndex].players[j])
+                    if(opponentIndex === -1){
+                        wins = []
+                        losses = []
+                    }else{
+                        wins = player.games[gameIndex].opponents[opponentIndex].tournaments.filter(set => set.type === 'win')
+                        losses = player.games[gameIndex].opponents[opponentIndex].tournaments.filter(set => set.type === 'loss')
+                    }
                 }
                 catch(e){
-                    winIndex = 0
+                    wins = []
+                    losses = []
+                    console.log(e)
                 }
-                try{
-                    lossIndex = await getPlayerLoss(regionId, player.playerId, seasonName, region.players[j].playerId)
-                    lossIndex = player.seasons[seasonIndex].losses[lossIndex].tournaments.length
-                }
-                catch(e){
-                    lossIndex = 0
-                }
-                newPlayerH2H[region.players[j].gamerTag] = {wins: winIndex, losses: lossIndex}
+                newPlayerH2H[opponent.gamerTag] = {wins: wins.length, losses: losses.length}
             }
             h2h[player.gamerTag] = newPlayerH2H
         }
