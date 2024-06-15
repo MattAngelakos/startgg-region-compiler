@@ -291,8 +291,75 @@ const seasonFilter = async(regionId, seasonName, playerId) => {
     }
     player.games[videogameIndex].opponents = player.games[videogameIndex].opponents.filter(opponent => opponent.tournaments.length !== 0)
     return player;
-    
 }
+
+function reduceEventNames(events) {
+    return events.map(event => {
+    // Remove anything after a number, '#', or '-'
+    let cleanedEvent = event.split(/[#\d-]/)[0].trim();
+    // Remove trailing Roman numerals if they occur at the end
+    cleanedEvent = cleanedEvent.replace(/(?: [IVXLCDM]+)?$/, '').trim();
+    return cleanedEvent;
+    });
+  }
+
+const playerEligible = async (region, seasonName, playerId) => {
+    try {
+        const gameIndex = await getGameFromPlayer(playerId, region.gameId);
+        const player = await seasonFilter(region._id.toString(), seasonName, playerId);
+        if (player.games[gameIndex].tournaments.length < region.minimumEvents) {
+            return false;
+        }
+        if (region.minimumEventsInAddrState > 0) {
+            const tournamentsInAddrState = await Promise.all(
+                player.games[gameIndex].tournaments.map(async (tournament) => {
+                    const tourney = await getMainTournament(tournament.tournamentId);
+                    return tourney.addrState === region.addrState;
+                })
+            );
+            if (tournamentsInAddrState.filter(Boolean).length < region.minimumEventsInAddrState) {
+                return false;
+            }
+        }
+        if (region.minimumUniqueEvents > 1) {
+            const tournamentNames = await Promise.all(
+                player.games[gameIndex].tournaments.map(async (tournament) => {
+                    const tourney = await getMainTournament(tournament.tournamentId);
+                    return tourney.tournamentName;
+                })
+            );
+            const reducedTournamentNames = reduceEventNames(tournamentNames)
+            const uniqueEvents = new Set(reducedTournamentNames)
+            //console.log(uniqueEvents)
+            if (uniqueEvents.length < region.minimumUniqueEvents) {
+                return false;
+            }
+        }
+        return true;
+    } catch (err) {
+        console.error("An error occurred while checking player eligibility:", err);
+        return false;
+    }
+};
+
+const playerFilter = async (regionId, seasonName) => {
+    try {
+        let region = await getRegion(regionId);
+        const seasonIndex = await getSeason(regionId, seasonName);
+        let players = region.seasons[seasonIndex].players;
+        const eligiblePlayers = [];
+        for (const player of players) {
+            if (await playerEligible(region, seasonName, player)) {
+                eligiblePlayers.push(player);
+            }
+        }
+        return eligiblePlayers;
+    } catch (error) {
+        console.error("Error in playerFilter:", error);
+        throw error;
+    }
+};
+
 
 const do_h2h = async (regionId, seasonName) => {
     let opponentIndex
@@ -408,5 +475,7 @@ export{
     calcAvgPlacement,
     updateNames,
     finish_h2h,
-    seasonFilter
+    seasonFilter,
+    playerEligible,
+    playerFilter
 }

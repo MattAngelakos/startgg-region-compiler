@@ -2,8 +2,11 @@ import {regions} from '../config/mongoCollections.js'
 import {ObjectId} from 'mongodb'
 import { arrayCheck, atLeast, booleanCheck, idCheck, intCheck, numCheck, objectCheck, stringCheck } from '../helpers.js'
 
-const createRegion = async (regionName, gameId, onlineAllowed, minimumEntrants, ownerId) => {
+const createRegion = async (regionName, gameId, onlineAllowed, minimumEntrants, minimumEvents, minimumUniqueEvents, addrState, minimumEventsInAddrState, ownerId) => {
     regionName = stringCheck(regionName, "regionName")
+    atLeast(addrState, 1, "regionName")
+    addrState = stringCheck(addrState, "addrState")
+    atLeast(addrState, 1, "addrState")
     numCheck(gameId, "gameId")
     intCheck(gameId, "gameId")
     idCheck(ownerId, "ownerId")
@@ -11,14 +14,27 @@ const createRegion = async (regionName, gameId, onlineAllowed, minimumEntrants, 
     numCheck(minimumEntrants, "minimumEntrants")
     intCheck(minimumEntrants, "minimumEntrants")
     atLeast(minimumEntrants, 2, "minimumEntrants")
+    numCheck(minimumEvents, "minimumEvents")
+    intCheck(minimumEvents, "minimumEvents")
+    atLeast(minimumEvents, 1, "minimumEvents")
+    numCheck(minimumUniqueEvents, "minimumUniqueEvents")
+    intCheck(minimumUniqueEvents, "minimumUniqueEvents")
+    atLeast(minimumUniqueEvents, 1, "minimumUniqueEvents")
+    numCheck(minimumEventsInAddrState, "minimumEventsInAddrState")
+    intCheck(minimumEventsInAddrState, "minimumEventsInAddrState")
+    atLeast(minimumEventsInAddrState, 0, "minimumEventsInAddrState")
     const regionCollection = await regions()
     let newRegion = {
         regionName: regionName,
+        addrState: addrState,
         ownerId: ownerId,
         seasons: [],
         gameId: gameId,
         onlineAllowed: onlineAllowed,
         minimumEntrants: minimumEntrants,
+        minimumEvents: minimumEvents,
+        minimumUniqueEvents: minimumUniqueEvents,
+        minimumEventsInAddrState: minimumEventsInAddrState,
         numOfLikes: 0
     }
     const insertInfo = await regionCollection.insertOne(newRegion)
@@ -64,7 +80,13 @@ const editRegion = async (id, editObject) => {
     let updatedRegion = await getRegion(id)
     if("regionName" in editObject){
         editObject.regionName = stringCheck(editObject.regionName, "regionName")
+        atLeast(editObject.regionName, 1, "regionName")
         updatedRegion.regionName = editObject.regionName
+    }
+    if("addrState" in editObject){
+        editObject.addrState = stringCheck(editObject.addrState, "addrState")
+        atLeast(editObject.addrState, 1, "addrState")
+        updatedRegion.addrState = editObject.addrState
     }
     if("seasons" in editObject){
         arrayCheck(editObject.seasons, "seasons")
@@ -83,6 +105,24 @@ const editRegion = async (id, editObject) => {
         intCheck(editObject.minimumEntrants, "minimumEntrants")
         atLeast(editObject.minimumEntrants, 2, "minimumEntrants")
         updatedRegion.minimumEntrants = editObject.minimumEntrants
+    }
+    if("minimumEvents" in editObject){
+        numCheck(editObject.minimumEvents, "minimumEvents")
+        intCheck(editObject.minimumEvents, "minimumEvents")
+        atLeast(editObject.minimumEvents, 1, "minimumEvents")
+        updatedRegion.minimumEvents = editObject.minimumEvents
+    }
+    if("minimumUniqueEvents" in editObject){
+        numCheck(editObject.minimumUniqueEvents, "minimumUniqueEvents")
+        intCheck(editObject.minimumUniqueEvents, "minimumUniqueEvents")
+        atLeast(editObject.minimumUniqueEvents, 1, "minimumUniqueEvents")
+        updatedRegion.minimumUniqueEvents = editObject.minimumUniqueEvents
+    }
+    if("minimumEventsInAddrState" in editObject){
+        numCheck(editObject.minimumEventsInAddrState, "minimumEventsInAddrState")
+        intCheck(editObject.minimumEventsInAddrState, "minimumEventsInAddrState")
+        atLeast(editObject.minimumEventsInAddrState, 0, "minimumEventsInAddrState")
+        updatedRegion.minimumEventsInAddrState = editObject.minimumEventsInAddrState
     }
     if("onlineAllowed" in editObject){
         booleanCheck(editObject.onlineAllowed, "onlineAllowed")
