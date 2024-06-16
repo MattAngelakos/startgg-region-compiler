@@ -5,20 +5,28 @@ import { getTournament } from './tournaments.js'
 
 
 //data functions for players collection
-const createPlayer = async (playerId) => {
+const createPlayer = async (playerId, opponentName) => {
     numCheck(playerId, "playerId")
     intCheck(playerId, "playerId")
-    const query = `
-    query Name($id: ID!) {
-        player(id: $id) {
-            gamerTag
-        }
+    let gamerTag
+    if(opponentName){
+        gamerTag = stringCheck(opponentName, "gamerTag")
+        atLeast(gamerTag, 1, "gamerTag")
     }
-    `
-    const data = await doRequest(query, playerId, 0, 0, 0, 0)
+    else{
+        const query = `
+        query Name($id: ID!) {
+            player(id: $id) {
+                gamerTag
+            }
+        }
+        `
+        const data = await doRequest(query, playerId, 0, 0, 0, 0)
+        gamerTag = data.data.player.gamerTag
+    }
     let newPlayer = {
         _id: playerId,
-        gamerTag: data.data.player.gamerTag,
+        gamerTag: gamerTag,
         games: []
     }
     const playerCollection = await players()
@@ -106,20 +114,40 @@ const createGameForPlayer = async (id, gameId) => {
     numCheck(gameId, 'gameId')
     intCheck(gameId, 'gameId')
     let player = await getPlayer(id)
-    const query = `
-    query videogameCheck($id: ID!) {
-        videogame(id: $id) {
-            name
+    // const query = `
+    // query videogameCheck($id: ID!) {
+    //     videogame(id: $id) {
+    //         name
+    //     }
+    // }
+    // `
+    // const data = await doRequest(query, gameId, 0, 0, 0, 0)
+    // if(data.data.videogame.name){
+    if(true){
+        const query2 = `
+        query Name($id: ID!, $videogameId: ID!) {
+            player(id: $id) {
+                gamerTag
+                rankings(videogameId: $videogameId) {
+                    rank
+                    title
+                }
+            }
         }
-    }
-    `
-    const data = await doRequest(query, gameId, 0, 0, 0, 0)
-    if(data.data.videogame.name){
+        `
+        const rankings = await doRequest(query2, id, gameId, 0, 0, 0)
+        let gameRanks
+        if(rankings.data.player.rankings === null){
+            gameRanks = []
+        }else{
+            gameRanks = rankings.data.player.rankings
+        }
         const newGame = {
             gameId: gameId,
             tournaments: [],
             opponents: [],
             characters: [],
+            rankings: gameRanks,
             lastRecordedSet: {}
         }
         player.games.push(newGame)
@@ -196,6 +224,13 @@ const editGameForPlayer = async (id, gameId, editObject) => {
             objectCheck(element, "character")
         }
         player.games[index].characters = editObject.characters
+    }
+    if('rankings' in editObject){
+        arrayCheck(editObject.rankings, "rankings")
+        for (const element of editObject.rankings) {
+            objectCheck(element, "rank")
+        }
+        player.games[index].rankings = editObject.rankings
     }
     if("lastRecordedSet" in editObject){
         objectCheck(editObject.lastRecordedSet, "lastRecordedSet")

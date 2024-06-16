@@ -1,6 +1,6 @@
 import { atLeast, doRequest, intCheck, numCheck, stringCheck, objectCheck, arrayCheck } from "../helpers.js"
 import { addPlay, createPlayerCharacter } from "./characters.js"
-import { createPlayerLoss, createPlayerMatch, createPlayerWin, createTournamentForPlayer, editPlayer, editPlayerLoss, editPlayerWin, getGameFromPlayer, getPlayer, getPlayerLoss, getPlayerWin, getTournamentFromPlayer } from "./players.js"
+import { createGameForPlayer, createPlayer, createPlayerLoss, createPlayerMatch, createPlayerWin, createTournamentForPlayer, editPlayer, editPlayerLoss, editPlayerWin, getGameFromPlayer, getPlayer, getPlayerLoss, getPlayerWin, getTournamentFromPlayer } from "./players.js"
 import { getRegion } from "./regions.js"
 import { getSeason } from "./seasons.js"
 import { createEvent, createTournament, getMainTournament, getTournament } from "./tournaments.js"
@@ -143,6 +143,17 @@ const setsRequest = async (playerId, videogameId) => {
                         placement = slot.entrant.standing.placement
                     }
                 }
+                let opponent
+                try{
+                    opponent = await getPlayer(opponentId)
+                }catch(e){
+                    opponent = await createPlayer(opponentId, opponentName)
+                }
+                try{
+                    await getGameFromPlayer(opponentId, videogameId)
+                }catch(e){
+                    await createGameForPlayer(opponentId, videogameId)
+                }
                 try{
                     tournament = await getTournament(set.event.tournament.id, set.event.id)
                 }catch(e){
@@ -250,6 +261,7 @@ const setsRequest = async (playerId, videogameId) => {
         if(page % 15 === 0){
             await new Promise(r => setTimeout(r, 60000));
         }
+        await new Promise(r => setTimeout(r, 20000));
     }while(page !== 10)
     player.games[gameIndex].lastRecordedSet = newLastRecordedSet
     await editPlayer(playerId, player)
