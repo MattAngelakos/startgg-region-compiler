@@ -516,8 +516,137 @@ const tournamentFilter = async (playerId, videogameId, eventIds) => {
     return player
 }
 
-const sortTournamentsByPlacement = async (player) => {
-    
+const comparePlacements = (tournament1, tournament2, tournamentsData, type) => {
+    let val = tournament1.placement - tournament2.placement;
+    if (val === 0) {
+        const { fullTournament: fullTournament1, eventIndex: index1 } = tournamentsData[tournament1.tournamentId];
+        const { fullTournament: fullTournament2, eventIndex: index2 } = tournamentsData[tournament2.tournamentId];
+        val = fullTournament2.events[index2].entrants- fullTournament1.events[index1].entrants;
+    }
+    if(type === -1){
+        return -val
+    }else{
+        return val
+    }
+};
+
+const comparePercentiles = (tournament1, tournament2, tournamentsData, type) => {
+    const { fullTournament: fullTournament1, eventIndex: index1 } = tournamentsData[tournament1.tournamentId];
+    const { fullTournament: fullTournament2, eventIndex: index2 } = tournamentsData[tournament2.tournamentId];
+    let val = ((fullTournament2.events[index2].entrants - tournament2.placement)/fullTournament2.events[index2].entrants) - ((fullTournament1.events[index1].entrants - tournament1.placement)/fullTournament1.events[index1].entrants);
+    if(val === 0){
+        fullTournament2.events[index2].entrants- fullTournament1.events[index1].entrants;
+    }
+    if(type === -1){
+        return -val
+    }else{
+        return val
+    }
+}
+
+const compareEntrants = (tournament1, tournament2, tournamentsData, type) => {
+    const { fullTournament: fullTournament1, eventIndex: index1 } = tournamentsData[tournament1.tournamentId];
+    const { fullTournament: fullTournament2, eventIndex: index2 } = tournamentsData[tournament2.tournamentId];
+    let val = fullTournament2.events[index2].entrants- fullTournament1.events[index1].entrants;
+    if(type === -1){
+        return -val
+    }else{
+        return val
+    }
+}
+
+const compareDates = (tournament1, tournament2, tournamentsData, type) => {
+    const { fullTournament: fullTournament1, eventIndex: index1 } = tournamentsData[tournament1.tournamentId];
+    const { fullTournament: fullTournament2, eventIndex: index2 } = tournamentsData[tournament2.tournamentId];
+    let val = fullTournament2.events[index2].startedAt - fullTournament1.events[index1].startedAt;
+    if(type === -1){
+        return -val
+    }else{
+        return val
+    }
+}
+
+const compareNames = (tournament1, tournament2, tournamentsData, type) => {
+    const { fullTournament: fullTournament1, eventIndex: index1 } = tournamentsData[tournament1.tournamentId];
+    const { fullTournament: fullTournament2, eventIndex: index2 } = tournamentsData[tournament2.tournamentId];
+    let val = fullTournament1.tournamentName.toLowerCase().localeCompare(fullTournament2.tournamentName.toLowerCase(), undefined, { numeric: true, sensitivity: 'base' });
+    if(type === -1){
+        return -val
+    }else{
+        return val
+    }
+}
+
+
+const sortTournaments = async (player, videogameId, type) => {
+    stringCheck(type, "type");
+    atLeast(type, 1, "type");
+    const index = await getGameFromPlayer(parseInt(player._id), videogameId);
+    const tournamentPromises = player.games[index].tournaments.map(async (tournament) => {
+        const fullTournament = await getMainTournament(tournament.tournamentId);
+        const eventIndex = await getTournament(tournament.tournamentId, tournament.eventId);
+        return { 
+            tournamentId: tournament.tournamentId,
+            eventId: tournament.eventId,
+            fullTournament,
+            eventIndex
+        };
+    });
+    const fullTournaments = await Promise.all(tournamentPromises);
+    const tournamentsData = fullTournaments.reduce((acc, curr) => {
+        acc[curr.tournamentId] = {
+            fullTournament: curr.fullTournament,
+            eventIndex: curr.eventIndex
+        };
+        return acc;
+    }, {});
+    switch (type) {
+        case "highestPlacement":
+            player.games[index].tournaments.sort((tournament1, tournament2) =>
+                comparePlacements(tournament1, tournament2, tournamentsData, 1)
+            );
+            break;
+        case "lowestPlacement":
+                player.games[index].tournaments.sort((tournament1, tournament2) =>
+                    comparePlacements(tournament1, tournament2, tournamentsData, -1)
+                );
+                break;
+        case "highestPercentile":
+            player.games[index].tournaments.sort((tournament1, tournament2) =>
+                comparePercentiles(tournament1, tournament2, tournamentsData, 1)
+            );
+        case "lowestPercentile":
+            player.games[index].tournaments.sort((tournament1, tournament2) =>
+                comparePercentiles(tournament1, tournament2, tournamentsData, -1)
+            );
+        case "highestEntrants":
+            player.games[index].tournaments.sort((tournament1, tournament2) =>
+            compareEntrants(tournament1, tournament2, tournamentsData, 1)
+        ); 
+        case "lowestEntrants":
+            player.games[index].tournaments.sort((tournament1, tournament2) =>
+            compareEntrants(tournament1, tournament2, tournamentsData, -1)
+        ); 
+        case "newest":
+            player.games[index].tournaments.sort((tournament1, tournament2) =>
+            compareDates(tournament1, tournament2, tournamentsData, 1)
+        ); 
+        case "oldest":
+            player.games[index].tournaments.sort((tournament1, tournament2) =>
+            compareDates(tournament1, tournament2, tournamentsData, -1)
+        ); 
+        case "alphanumerical":
+            player.games[index].tournaments.sort((tournament1, tournament2) =>
+            compareNames(tournament1, tournament2, tournamentsData, 1)
+        ); 
+        case "reverseAlphanumerical":
+            player.games[index].tournaments.sort((tournament1, tournament2) =>
+            compareNames(tournament1, tournament2, tournamentsData, -1)
+        ); 
+        default:
+            break;
+    }
+    return player;
 }
 
 export{
@@ -530,5 +659,6 @@ export{
     playerEligible,
     playerFilter,
     searchForPlayer,
-    tournamentFilter
+    tournamentFilter,
+    sortTournaments
 }
