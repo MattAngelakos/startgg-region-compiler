@@ -152,12 +152,12 @@ const sortLev = (inputs, search) => {
     }
     for (let i = 1; i < inputs.length; i++) {
         let current = inputs[i];
-        let currentLev = calculateLevenshtein(current.name, searchLower, current.name.length, searchLower.length);
+        let currentLev = calculateLevenshtein(current.gamerTag, searchLower, current.gamerTag.length, searchLower.length);
         let j = i - 1;
 
         while (j >= 0 && (
-            calculateLevenshtein(inputs[j].name, searchLower, inputs[j].name.length, searchLower.length) > currentLev ||
-            (calculateLevenshtein(inputs[j].name, searchLower, inputs[j].name.length, searchLower.length) === currentLev && inputs[j].likes < current.likes)
+            calculateLevenshtein(inputs[j].gamerTag, searchLower, inputs[j].gamerTag.length, searchLower.length) > currentLev ||
+            (calculateLevenshtein(inputs[j].gamerTag, searchLower, inputs[j].gamerTag.length, searchLower.length) === currentLev && inputs[j]._id > current._id)
         )) {
             inputs[j + 1] = inputs[j];
             j--;

@@ -1,6 +1,6 @@
-import { atLeast, doRequest, intCheck, numCheck, stringCheck, objectCheck, arrayCheck } from "../helpers.js"
+import { atLeast, doRequest, intCheck, numCheck, stringCheck, objectCheck, arrayCheck, sortLev } from "../helpers.js"
 import { addPlay, createPlayerCharacter } from "./characters.js"
-import { createGameForPlayer, createPlayer, createPlayerLoss, createPlayerMatch, createPlayerWin, createTournamentForPlayer, editPlayer, editPlayerLoss, editPlayerWin, getGameFromPlayer, getPlayer, getPlayerLoss, getPlayerWin, getTournamentFromPlayer } from "./players.js"
+import { createGameForPlayer, createPlayer, createPlayerLoss, createPlayerMatch, createPlayerWin, createTournamentForPlayer, editPlayer, editPlayerLoss, editPlayerWin, getAllPlayers, getGameFromPlayer, getPlayer, getPlayerLoss, getPlayerWin, getTournamentFromPlayer } from "./players.js"
 import { getRegion } from "./regions.js"
 import { getSeason } from "./seasons.js"
 import { createEvent, createTournament, getMainTournament, getTournament } from "./tournaments.js"
@@ -440,6 +440,13 @@ const finish_h2h = async (h2h) =>{
     return h2h
 }
 
+const searchForPlayer = async (gamerTag) => {
+    stringCheck(gamerTag, "gamerTag")
+    const players = await getAllPlayers()
+    const result = sortLev(players, gamerTag)
+    return result
+}
+
 const calcAvgPlacement = async (tournaments, minimumEntrants, maximumEntrants) => {
     let avg = 0
     let numOfBrackets = 0
@@ -448,6 +455,9 @@ const calcAvgPlacement = async (tournaments, minimumEntrants, maximumEntrants) =
     intCheck(minimumEntrants, "minimumEntrants")
     numCheck(maximumEntrants, "maximumEntrants")
     intCheck(maximumEntrants, "maximumEntrants")
+    if(minimumEntrants >= maximumEntrants){
+        throw 'invalid range'
+    }
     for(const tournament of tournaments){
         objectCheck(tournament, "tournament")
         const currTournament = await getTournament(tournament.tourneyId)
@@ -459,7 +469,7 @@ const calcAvgPlacement = async (tournaments, minimumEntrants, maximumEntrants) =
     return avg/numOfBrackets
 }
 
-const updateNames = async (regionId) => {
+const updateName = async (playerId) => {
     const query = `
     query Name($id: ID!) {
         player(id: $id) {
@@ -467,18 +477,47 @@ const updateNames = async (regionId) => {
         }
     }
     `
-    regionId = idCheck(regionId, "regionId")
-    let region = await getRegion(regionId)
-    for(let i = 0; i < region.players.length; i++){
-        numCheck(region.players[i], "playerId")
-        intCheck(region.players[i], "playerId")
-        const data = await doRequest(query, region.players[i].playerId, 0, 0, 0, 0)
-        if(data.data.player.gamerTag !== region.players[i].gamerTag){
-            region.players[i].gamerTag = data.data.player.gamerTag
-        }
-        await editRegion(regionId, region)
+    numCheck(playerId, "playerId")
+    intCheck(playerId, "playerId")
+    let player = await getRegion(playerId)
+    const data = await doRequest(query, region.players[i].playerId, 0, 0, 0, 0)
+    if(data.data.player.gamerTag !== region.players[i].gamerTag){
+        player.gamerTag = data.data.player.gamerTag
     }
-    return region.players
+    await editPlayer(playerId, player)
+    return player
+}
+
+const updateNames = async (playerIds) => {
+    let changes = []
+    for(const playerId in playerIds){
+        try{
+            await updateName(playerId)
+            changes.push(`${playerId} updated`)
+        }catch(e){
+            changes.push(`${playerId} update failed: ${e}`)
+        }
+    }
+    return changes
+}
+
+const tournamentFilter = async (playerId, videogameId, eventIds) => {
+    for(const eventId of eventIds){
+        numCheck(eventId, "eventId")
+        intCheck(eventId, "eventId")
+    }
+    let player = await getPlayer(playerId)
+    const videogameIndex = await getGameFromPlayer(playerId, videogameId)
+    player.games[videogameIndex].tournaments = player.games[videogameIndex].tournaments.filter(event => !eventIds.includes(event.eventId))
+    for(let i = 0; i < player.games[videogameIndex].opponents.length; i++){
+        player.games[videogameIndex].opponents[i].tournaments = player.games[videogameIndex].opponents[i].tournaments.filter(event => !eventIds.includes(event.eventId))
+    }
+    player.games[videogameIndex].opponents = player.games[videogameIndex].opponents.filter(opponent => opponent.tournaments.length !== 0)
+    return player
+}
+
+const sortTournamentsByPlacement = async (player) => {
+    
 }
 
 export{
@@ -489,5 +528,7 @@ export{
     finish_h2h,
     seasonFilter,
     playerEligible,
-    playerFilter
+    playerFilter,
+    searchForPlayer,
+    tournamentFilter
 }

@@ -39,8 +39,8 @@ const createPlayer = async (playerId, opponentName) => {
 }
 
 const getAllPlayers = async () => {
-    const players = await players()
-    let playerList = await players.find({}).toArray()
+    const allPlayers = await players()
+    let playerList = await allPlayers.find({}).toArray()
     if (!playerList) throw 'Could not get all region'
     return playerList
 }
