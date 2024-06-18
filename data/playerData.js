@@ -649,6 +649,120 @@ const sortTournaments = async (player, videogameId, type) => {
     return player;
 }
 
+const comparePlayed = (opponent1, opponent2, type) => {
+    let val = opponent1.tournaments.length - opponent2.tournaments.length
+    if(type === -1){
+        return -val
+    }
+    return val
+} 
+
+const compareWinrate = (opponent1, opponent2, type) => {
+    let wins1 = 0
+    let wins2 = 0
+    for(const match of opponent1.tournaments){
+        if(match.type === "win"){
+            wins1 = wins1 + 1
+        }
+    }
+    for(const match of opponent2.tournaments){
+        if(match.type === "win"){
+            wins2 = wins2 + 1
+        }
+    }
+    let val = (wins1/opponent1.tournaments.length) - (wins2/opponent2.tournaments.length)
+    if(val === 0){
+        val = opponent1.tournaments.length - opponent2.tournaments.length
+    }
+    if(type === -1){
+        return -val
+    }
+    return val
+}
+
+const comparePlayerNames = (opponent1, opponent2, type) => {
+    let val = opponent1.opponentName.toLowerCase().localeCompare(opponent2.opponentName.toLowerCase(), undefined, { numeric: true, sensitivity: 'base' });
+    if(type === -1){
+        return -val
+    }else{
+        return val
+    }
+}
+
+const compareRecency = (opponent1, opponent2, opponents, type) => {
+    let val = opponents[opponent1.opponentId].mostRecent - opponents[opponent2.opponentId].mostRecent
+    if(val === 0){
+        val = opponent1.tournaments.length - opponent2.tournaments.length
+    }
+    if(type === -1){
+        return -val
+    }
+    return val 
+}
+
+const sortOpponents = async (player, videogameId, type) => {
+    stringCheck(type, "type");
+    atLeast(type, 1, "type");
+    const index = await getGameFromPlayer(parseInt(player._id), videogameId);
+    let opponents = {}
+    if(type === "newest" || type === "oldest"){
+        for(const opponent of player.games[index].opponents){
+            let mostRecent = -1
+            for(const match of opponent.tournaments){
+                const tournament = await getMainTournament(match.tournamentId)
+                const event = await getTournament(match.tournamentId, match.eventId)
+                if(mostRecent < tournament.events[event].startAt){
+                    mostRecent = tournament.events[event].startAt
+                }
+            }
+            opponents[opponent.opponentId] = {mostRecent: mostRecent}
+        }
+    }
+    switch (type) {
+        case "mostPlayed":
+            player.games[index].opponents.sort((opponent1, opponent2) =>
+                comparePlayed(opponent1, opponent2, -1)
+            );
+            break
+        case "leastPlayed":
+            player.games[index].opponents.sort((opponent1, opponent2) =>
+                comparePlayed(opponent1, opponent2, 1)
+            );
+            break
+        case "highestWinrate":
+            player.games[index].opponents.sort((opponent1, opponent2) =>
+                compareWinrate(opponent1, opponent2, -1))
+            break
+        case "lowestWinrate":
+            player.games[index].opponents.sort((opponent1, opponent2) =>
+                compareWinrate(opponent1, opponent2, 1))
+            break
+        case "newest":
+            player.games[index].opponents.sort((opponent1, opponent2) =>
+            compareRecency(opponent1, opponent2, opponents, -1))
+            break
+        case "oldest":
+            player.games[index].opponents.sort((opponent1, opponent2) =>
+            compareRecency(opponent1, opponent2, opponents, 1))
+            break
+        case "alphanumerical":
+            player.games[index].opponents.sort((opponent1, opponent2) =>
+            comparePlayerNames(opponent1, opponent2, 1))
+            break
+        case "reverseAlphanumerical":
+            player.games[index].opponents.sort((opponent1, opponent2) =>
+            comparePlayerNames(opponent1, opponent2, -1))
+            break
+        case "hasRank":
+            player.games[index].opponents.sort((opponent1, opponent2) =>
+            comparePlayerNames(opponent1, opponent2, -1))
+            break
+        default:
+            break
+    }
+    return player;
+}
+
 export{
     setsRequest,
     do_h2h,
@@ -660,5 +774,6 @@ export{
     playerFilter,
     searchForPlayer,
     tournamentFilter,
-    sortTournaments
+    sortTournaments,
+    sortOpponents
 }
