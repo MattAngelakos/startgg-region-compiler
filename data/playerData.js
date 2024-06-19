@@ -700,6 +700,10 @@ const compareRecency = (opponent1, opponent2, opponents, type) => {
     return val 
 }
 
+const filterRank = (opponentId, opponents) => {
+    return opponents[opponentId].hasRank
+}
+
 const sortOpponents = async (player, videogameId, type) => {
     stringCheck(type, "type");
     atLeast(type, 1, "type");
@@ -753,12 +757,42 @@ const sortOpponents = async (player, videogameId, type) => {
             player.games[index].opponents.sort((opponent1, opponent2) =>
             comparePlayerNames(opponent1, opponent2, -1))
             break
-        case "hasRank":
-            player.games[index].opponents.sort((opponent1, opponent2) =>
-            comparePlayerNames(opponent1, opponent2, -1))
-            break
         default:
             break
+    }
+    return player;
+}
+
+const filters = async (player, videogameId, type) => {
+    stringCheck(type, "type");
+    atLeast(type, 1, "type");
+    const index = await getGameFromPlayer(parseInt(player._id), videogameId);
+    let opponents = {}
+    if(type === "hasRank" || type === "noRank"){
+        for(const opponent of player.games[index].opponents){
+            const opponentPlayer = await getPlayer(opponent.opponentId)
+            const videogameIndex = await getGameFromPlayer(opponent.opponentId, videogameId)
+            if(opponentPlayer.games[videogameIndex].rankings.length !== 0){
+                opponents[opponent.opponentId] = {hasRank: true}
+            }
+            else{
+                opponents[opponent.opponentId] = {hasRank: false}
+            }
+        }
+    }
+    switch (type) {
+        case "hasRank":
+            player.games[index].opponents = player.games[index].opponents.filter(opponent => {
+                return filterRank(opponent.opponentId, opponents)
+            })
+            break
+        case "noRank":
+            player.games[index].opponents = player.games[index].opponents.filter(opponent => {
+                return !filterRank(opponent.opponentId, opponents)
+            })
+            break
+            default:
+                break
     }
     return player;
 }
@@ -775,5 +809,6 @@ export{
     searchForPlayer,
     tournamentFilter,
     sortTournaments,
-    sortOpponents
+    sortOpponents,
+    filters
 }
