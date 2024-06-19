@@ -1,4 +1,4 @@
-import { atLeast, doRequest, intCheck, numCheck, stringCheck, objectCheck, arrayCheck, sortLev } from "../helpers.js"
+import { atLeast, doRequest, intCheck, numCheck, stringCheck, objectCheck, arrayCheck, sortLev, createDate } from "../helpers.js"
 import { addPlay, createPlayerCharacter } from "./characters.js"
 import { createGameForPlayer, createPlayer, createPlayerLoss, createPlayerMatch, createPlayerWin, createTournamentForPlayer, editPlayer, editPlayerLoss, editPlayerWin, getAllPlayers, getGameFromPlayer, getPlayer, getPlayerLoss, getPlayerWin, getTournamentFromPlayer } from "./players.js"
 import { getRegion } from "./regions.js"
@@ -763,7 +763,19 @@ const sortOpponents = async (player, videogameId, type) => {
     return player;
 }
 
-const filters = async (player, videogameId, type) => {
+const filters = async (player, videogameId, type, entrantMinimum, entrantMaximum, yearMinimum, monthMinumum, dayMinimum, yearMaximum, monthMaximum, dayMaximum) => {
+    numCheck(entrantMinimum, "entrantMinimum")
+    intCheck(entrantMinimum, "entrantMinimum")
+    numCheck(entrantMaximum, "entrantMaximum")
+    intCheck(entrantMaximum, "entrantMaximum")
+    if(entrantMaximum === 0){
+        entrantMaximum = Number.MAX_SAFE_INTEGER
+    }
+    const dateMinimum = createDate(monthMinumum, dayMinimum, yearMinimum)
+    const dateMaximum = createDate(monthMaximum, dayMaximum, yearMaximum)
+    if(dateMinimum >= dateMaximum){
+        throw 'invalid date range'
+    }
     stringCheck(type, "type");
     atLeast(type, 1, "type");
     const index = await getGameFromPlayer(parseInt(player._id), videogameId);
@@ -780,7 +792,38 @@ const filters = async (player, videogameId, type) => {
             }
         }
     }
+    let brackets = []
+    if(type === "onlineOnly" || type === "offlineOnly" || type === "entrantRange" || type === "dateRange"){
+        for(const tournament of player.games[index].tournaments){
+            const bracket = await getMainTournament(tournament.tournamentId)
+            const event = await getTournament(tournament.tournamentId, tournament.eventId) 
+            if(type === "onlineOnly"){
+                if(!bracket.events[event].isOnline){
+                    brackets.push(tournament.eventId)
+                }
+            }
+            else if(type === "offlineOnly"){
+                if(bracket.events[event].isOnline){
+                    brackets.push(tournament.eventId)
+                } 
+            }
+            else if(type === "entrantRange"){
+                if((bracket.events[event].entrants < entrantMinimum || bracket.events[event].entrants > entrantMaximum)){
+                    brackets.push(tournament.eventId)
+                }
+            }
+            else if(type === "dateRange"){
+                if((bracket.events[event].startAt < dateMinimum || bracket.events[event].startAt > dateMaximum)){
+                    brackets.push(tournament.eventId)
+                }
+            }
+        }
+        type = "filter"
+    }
     switch (type) {
+        case "filter":
+            player = await tournamentFilter(parseInt(player._id), videogameId, brackets)
+            break
         case "hasRank":
             player.games[index].opponents = player.games[index].opponents.filter(opponent => {
                 return filterRank(opponent.opponentId, opponents)
@@ -791,8 +834,8 @@ const filters = async (player, videogameId, type) => {
                 return !filterRank(opponent.opponentId, opponents)
             })
             break
-            default:
-                break
+        default:
+            break
     }
     return player;
 }
