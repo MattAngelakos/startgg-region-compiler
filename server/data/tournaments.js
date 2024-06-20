@@ -27,8 +27,8 @@ const createTournament = async (id, tournamentName, addrState) => {
 }
 
 const getAllTournaments = async () => {
-    const tournaments = await tournaments()
-    let tournamentList = await tournaments.find({}).toArray()
+    const theTournaments = await tournaments()
+    let tournamentList = await theTournaments.find({}).toArray()
     if (!tournamentList) throw 'Could not get all tournaments'
     return tournamentList
 }

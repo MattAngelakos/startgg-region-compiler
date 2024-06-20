@@ -8,10 +8,10 @@ import tournamentRouter from "./tournaments.js";
 
 const setupRoutes = (app) => {
     app.use("/", baseRouter);
-    app.use("/user", usersRouter);
-    app.use("/region", regionRouter);
-    app.use("/player", playerRouter);
-    app.use("/tournament", tournamentRouter);
+    app.use("/users", usersRouter);
+    app.use("/regions", regionRouter);
+    app.use("/players", playerRouter);
+    app.use("/tournaments", tournamentRouter);
     app.use("*", (req, res) => {
         res.status(404).json({ error: "Not found" });
     });
