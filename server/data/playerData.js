@@ -840,6 +840,50 @@ const filters = async (player, videogameId, type, entrantMinimum, entrantMaximum
     return player;
 }
 
+const getEventResultsByRegion = async (regionId, seasonName, tournamentId, eventId) =>{
+    const region = await getRegion(regionId)
+    const index = await getSeason(regionId, seasonName)
+    await getTournament(tournamentId, eventId)
+    let eventIndex, player, gameIndex
+    let results = []
+    for(const playerId of region.seasons[index].players){
+        try{
+            player = await getPlayer(playerId)
+        }catch(e){
+            console.log(`${playerId} does not exist`)
+            continue
+        }
+        try{
+            gameIndex = await getGameFromPlayer(playerId, region.gameId)
+        }catch(e){
+            console.log(`${playerId} does not have gameId ${region.gameId}}`)
+            continue
+        }
+        try{
+            eventIndex = await getTournamentFromPlayer(playerId, region.gameId, tournamentId, eventId)
+            let matches = []
+            let resultObject = {
+                id: player._id,
+                gamerTag: player.gamerTag,
+                placement: player.games[gameIndex].tournaments[eventIndex].placement
+            }
+            for(let opponent of player.games[gameIndex].opponents){
+                opponent.tournaments = opponent.tournaments.filter(event => event.eventId === eventId)
+                if(opponent.tournaments.length !== 0){
+                    matches.push(opponent)
+                }
+            }
+            resultObject.matches = matches
+            results.push(resultObject)
+        }catch(e){
+            console.log(e)
+            console.log(`${playerId} does not have eventId ${eventId}`)
+            continue
+        }
+    }
+    return results
+}
+
 export{
     setsRequest,
     do_h2h,
@@ -853,5 +897,6 @@ export{
     tournamentFilter,
     sortTournaments,
     sortOpponents,
-    filters
+    filters,
+    getEventResultsByRegion
 }

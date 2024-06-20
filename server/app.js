@@ -3,7 +3,7 @@ import { createGameForPlayer, createPlayer, filterPlayers, getPlayer } from './d
 import { createRegion, getRegion, removeRegion } from './data/regions.js';
 import { addPlayers, createSeason } from './data/seasons.js';
 import { createUser } from './data/accounts.js';
-import { do_h2h, filters, finish_h2h, playerEligible, playerFilter, searchForPlayer, seasonFilter, setsRequest, sortOpponents, sortTournaments, tournamentFilter } from './data/playerData.js';
+import { do_h2h, filters, finish_h2h, getEventResultsByRegion, playerEligible, playerFilter, searchForPlayer, seasonFilter, setsRequest, sortOpponents, sortTournaments, tournamentFilter } from './data/playerData.js';
 import { getMainTournament } from './data/tournaments.js';
 const db = await dbConnection();
 // await db.dropDatabase();
@@ -178,6 +178,13 @@ let filtered2
 try{
     filtered2 = await filters(syrup, 1386, "dateRange", 100, 0, 2024, 4, 1, 2024, 7, 1)
     console.log(filtered2.games[0].tournaments)
+}catch (e) {
+    console.log(e);
+}
+let goml
+try{
+    goml = await getEventResultsByRegion(nj._id, "q2_2024", 570293, 948374)
+    console.log(goml[0].matches)
 }catch (e) {
     console.log(e);
 }
