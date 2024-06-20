@@ -9,7 +9,7 @@ import tournamentRouter from "./tournaments.js";
 const router = express.Router();
 
 router.get("/", (req, res) => {
-    res.status(200).send("This is a server dude! 🙏");
+    res.status(200).send("This is a server");
 });
 
 const setupRoutes = (app) => {
