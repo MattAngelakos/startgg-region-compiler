@@ -20,15 +20,10 @@
   },
   "homepage": "https://github.com/MattAngelakos/startgg-region-compiler#readme",
   "dependencies": {
-    "autoprefixer": "^10.4.19",
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "mongodb": "^6.7.0",
-    "postcss-cli": "^11.0.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "tailwindcss": "^3.4.4",
     "validator": "^13.12.0"
   }
 }
