@@ -6,18 +6,12 @@ import regionRouter from "./regions.js";
 import playerRouter from "./players.js";
 import tournamentRouter from "./tournaments.js";
 
-const router = express.Router();
-
-router.get("/", (req, res) => {
-    res.status(200).send("This is a server");
-});
-
 const setupRoutes = (app) => {
-    app.use("/", router);
+    app.use("/", baseRouter);
     app.use("/user", usersRouter);
     app.use("/region", regionRouter);
     app.use("/player", playerRouter);
-    app.use("/player", tournamentRouter);
+    app.use("/tournament", tournamentRouter);
     app.use("*", (req, res) => {
         res.status(404).json({ error: "Not found" });
     });
