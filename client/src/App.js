@@ -5,6 +5,8 @@ import {
     useParams,
     Routes
 } from 'react-router-dom';
+import MatchInfo from './components/matchDetails.jsx';
+import './App.css';
 
 const PlayerDetail = () => {
     let { playerId } = useParams();
@@ -48,14 +50,30 @@ const PlayerDetail = () => {
     );
 };
 
-const App = () => {
-    return (
-        <Router>
-          <Routes>
-              <Route path="/player/:playerId" element={<PlayerDetail />}></Route>
-            </Routes>
-        </Router>
-    );
-};
+// const App = () => {
+//     return (
+//         <Router>
+//           <Routes>
+//               <Route path="/player/:playerId" element={<PlayerDetail />}></Route>
+//             </Routes>
+//         </Router>
+//     );
+// };
+
+function App() {
+  const matchDetails = {
+    playerChar: "Steve",
+    opponentChar: "Diddy Kong",
+    stage: "Battlefield",
+    type: "loss",
+    matchNum: 1
+  };
+
+  return (
+    <div className="App">
+      <MatchInfo matchDetails={matchDetails} />
+    </div>
+  );
+}
 
 export default App;

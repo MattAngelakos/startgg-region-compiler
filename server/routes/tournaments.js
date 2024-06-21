@@ -38,7 +38,7 @@ router.get("/:tournamentId", async (req, res) => {
     }
 });
 
-router.get("/:tournamentId/:eventId", async (req, res) => {
+router.get("/:tournamentId/events/:eventId", async (req, res) => {
     let tournamentId = req.params.tournamentId;
     let eventId = req.params.eventId;
     try{

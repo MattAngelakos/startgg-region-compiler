@@ -1,7 +1,7 @@
 import express from "express";
 import { getAllRegions, getRegion } from "../data/regions.js";
 import { getSeason } from "../data/seasons.js";
-import { do_h2h, finish_h2h, seasonFilter } from "../data/playerData.js";
+import { do_h2h, finish_h2h, getEventResultsByRegion, seasonFilter } from "../data/playerData.js";
 import { atLeast } from "../helpers.js";
 import { getPlayer } from "../data/players.js";
 const router = express.Router();
@@ -95,6 +95,42 @@ router.get("/:regionId/:seasonName/players/:playerId", async (req, res) => {
         const player = await seasonFilter(regionId, seasonName, playerId)
         res.status(200).json({
             player: player,
+        });
+    } catch (error) {
+        res.status(500).json({
+            error: error,
+        });
+    }
+});
+
+router.get("/:regionId/:seasonName/tournaments/:tournamentId/events/:eventId", async (req, res) => {
+    let regionId = req.params.regionId;
+    let seasonName = req.params.seasonName;
+    let tournamentId = req.params.tournamentId;
+    let eventId = req.params.eventId;
+    seasonName = seasonName.trim()
+    atLeast(seasonName, 1, "seasonName")
+    seasonName = seasonName.toLowerCase()
+    try{
+        tournamentId = parseInt(tournamentId)
+    }
+    catch(e){
+        res.status(500).json({
+            error: 'invalid tournamentId'
+        })
+    }
+    try{
+        eventId = parseInt(eventId)
+    }
+    catch(e){
+        res.status(500).json({
+            error: 'invalid eventId'
+        })
+    }
+    try {
+        const results = await getEventResultsByRegion(regionId, seasonName, tournamentId, eventId)
+        res.status(200).json({
+            results: results,
         });
     } catch (error) {
         res.status(500).json({
