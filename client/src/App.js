@@ -5,8 +5,10 @@ import {
     useParams,
     Routes
 } from 'react-router-dom';
-import MatchInfo from './components/matchDetails.jsx';
+import Set from './components/set.jsx';
 import './App.css';
+import SetList from './components/setList.jsx';
+import OpponentList from './components/opponentList.jsx';
 
 const PlayerDetail = () => {
     let { playerId } = useParams();
@@ -61,17 +63,102 @@ const PlayerDetail = () => {
 // };
 
 function App() {
-  const matchDetails = {
-    playerChar: "Steve",
-    opponentChar: "Diddy Kong",
-    stage: "Battlefield",
-    type: "loss",
-    matchNum: 1
-  };
+    const opponents = [
+      {
+        opponentName: 'Diddy Kong',
+        headToHeadScore: '2-1',
+        sets: [
+          {
+            type: 'loss',
+            matches: [
+              {
+                playerChar: 'Steve',
+                opponentChar: 'Diddy Kong',
+                stage: 'N/A',
+                type: 'loss',
+                matchNum: 1,
+              },
+              {
+                playerChar: 'Mario',
+                opponentChar: 'Luigi',
+                stage: 'Final Destination',
+                type: 'win',
+                matchNum: 2,
+              },
+            ],
+          },
+          {
+            type: 'win',
+            matches: [
+              {
+                playerChar: 'Link',
+                opponentChar: 'Zelda',
+                stage: 'Battlefield',
+                type: 'win',
+                matchNum: 1,
+              },
+              {
+                playerChar: 'Samus',
+                opponentChar: 'Ridley',
+                stage: 'N/A',
+                type: 'win',
+                matchNum: 2,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        opponentName: 'Luigi',
+        headToHeadScore: '3-2',
+        sets: [
+          {
+            type: 'win',
+            matches: [
+              {
+                playerChar: 'Peach',
+                opponentChar: 'Luigi',
+                stage: 'Final Destination',
+                type: 'win',
+                matchNum: 1,
+              },
+              {
+                playerChar: 'Bowser',
+                opponentChar: 'Luigi',
+                stage: 'Battlefield',
+                type: 'loss',
+                matchNum: 2,
+              },
+            ],
+          },
+          {
+            type: 'loss',
+            matches: [
+              {
+                playerChar: 'Yoshi',
+                opponentChar: 'Luigi',
+                stage: 'N/A',
+                type: 'loss',
+                matchNum: 1,
+              },
+              {
+                playerChar: 'Donkey Kong',
+                opponentChar: 'Luigi',
+                stage: 'Final Destination',
+                type: 'win',
+                matchNum: 2,
+              },
+            ],
+          },
+        ],
+      },
+      // Add more opponent objects as needed
+    ];
+      
 
   return (
     <div className="App">
-      <MatchInfo matchDetails={matchDetails} />
+      <OpponentList opponents={opponents} />
     </div>
   );
 }
