@@ -8,6 +8,7 @@ import {
 import OpponentList from './components/opponentList.jsx'
 import SortList from './components/sortList.jsx';
 import SearchList from './components/searchList.jsx';
+import TournamentResult from './components/tournamentResult.jsx';
 
 const PlayerDetail = () => {
     let { playerId } = useParams();
@@ -101,10 +102,159 @@ function App() {
         },
         // Add more lists as needed
       ];
-      
+    const goml = {
+        id: "1216463",
+        gamerTag: "Syrup",
+        placement: 5,
+        matches: [
+        {
+        opponentId: 258371,
+        opponentName: "Sonix",
+        tournaments: [
+        {
+        setId: 74914052,
+        tournamentId: 570293,
+        eventId: 948374,
+        type: "loss",
+        matches: [ ]
+        }
+        ]
+        },
+        {
+        opponentId: 15768,
+        opponentName: "Tweek",
+        tournaments: [
+            {
+            setId: 74914038,
+            tournamentId: 570293,
+            eventId: 948374,
+            type: "loss",
+            matches: [
+            {
+            playerChar: "Steve",
+            opponentChar: "Diddy Kong",
+            stage: "N/A",
+            type: "loss",
+            matchNum: 1
+            },
+            {
+            playerChar: "Steve",
+            opponentChar: "Diddy Kong",
+            stage: "N/A",
+            type: "win",
+            matchNum: 2
+            },
+            {
+            playerChar: "Steve",
+            opponentChar: "Diddy Kong",
+            stage: "N/A",
+            type: "win",
+            matchNum: 3
+            },
+            {
+            playerChar: "Steve",
+            opponentChar: "Diddy Kong",
+            stage: "N/A",
+            type: "loss",
+            matchNum: 4
+            },
+            {
+            playerChar: "Steve",
+            opponentChar: "Diddy Kong",
+            stage: "N/A",
+            type: "loss",
+            matchNum: 5
+            }
+            ]
+            }
+            ]
+        },
+        {
+        opponentId: 4702,
+        opponentName: "Dabuz",
+        tournaments: [
+        {
+        setId: 74892966,
+        tournamentId: 570293,
+        eventId: 948374,
+        type: "win",
+        matches: [ ]
+        }
+        ]
+        },
+        {
+        opponentId: 823045,
+        opponentName: "SHADIC",
+        tournaments: [
+        {
+        setId: 74892960,
+        tournamentId: 570293,
+        eventId: 948374,
+        type: "win",
+        matches: [ ]
+        }
+        ]
+        },
+        {
+        opponentId: 33730,
+        opponentName: "Seesaw",
+        tournaments: [
+        {
+        setId: 74857625,
+        tournamentId: 570293,
+        eventId: 948374,
+        type: "win",
+        matches: [ ]
+        }
+        ]
+        },
+        {
+        opponentId: 1409030,
+        opponentName: "M.C. Cant Read",
+        tournaments: [
+        {
+        setId: 74831469,
+        tournamentId: 570293,
+        eventId: 948374,
+        type: "win",
+        matches: [ ]
+        }
+        ]
+        },
+        {
+        opponentId: 1003263,
+        opponentName: "Sailor Jess",
+        tournaments: [
+        {
+        setId: 74831465,
+        tournamentId: 570293,
+        eventId: 948374,
+        type: "win",
+        matches: [ ]
+        }
+        ]
+        },
+        {
+        opponentId: 2374471,
+        opponentName: "Taima",
+        tournaments: [
+        {
+        setId: 74831457,
+        tournamentId: 570293,
+        eventId: 948374,
+        type: "win",
+        matches: [ ]
+        }
+        ]
+        }
+        ]
+        }
+    const tournament = 'Get On My Level X - Canadian Fighting Game Championships'
+    const event = 'Super Smash Bros. Ultimate - Singles'
+    const entrantCount = 688
   return (
     <div className="App">
-      <SearchList list={opponentLists[0]} ListComponent={OpponentList} searchField={'opponentName'}/>
+      <TournamentResult list={goml} tournament={tournament} event={event} entrantCount={entrantCount}/>
     </div>
   );
 }

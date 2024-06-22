@@ -5,18 +5,21 @@ import Collapsible from './collapse.jsx';
 const OpponentList = ({ opponents }) => {
   return (
     <div>
-      {opponents.map((opponent, index) => (
-        <Collapsible
-          key={index}
-          title={`${opponent.opponentName}`}
-        >
-          <SetList
-            opponentName={opponent.opponentName}
-            headToHeadScore={opponent.headToHeadScore}
-            sets={opponent.sets}
-          />
-        </Collapsible>
-      ))}
+      {opponents.map((opponent, index) => {
+        const headToHeadScore = opponent.headToHeadScore ?? ''; // Replace null with an empty string
+        return (
+          <Collapsible
+            key={index}
+            title={`${opponent.opponentName}`}
+          >
+            <SetList
+              opponentName={opponent.opponentName}
+              headToHeadScore={headToHeadScore}
+              sets={opponent.tournaments}
+            />
+          </Collapsible>
+        );
+      })}
     </div>
   );
 };

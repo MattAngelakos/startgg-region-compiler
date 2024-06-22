@@ -3,10 +3,12 @@ import Set from './set.jsx';
 import Collapsible from './collapse.jsx';
 
 const SetList = ({ sets, opponentName, headToHeadScore }) => {
+  console.log(sets)
+  const displayHeadToHeadScore = headToHeadScore ?? '';
   return (
     <div>
       <h1>Opponent: {opponentName}</h1>
-      <h2>Head to Head Score: {headToHeadScore}</h2>
+      <h2>Head to Head Score: {displayHeadToHeadScore}</h2>
       {sets.map((set, index) => (
         <Collapsible key={index} title={`Set ${index + 1}`}>
           <Set type={set.type} matches={set.matches} />
