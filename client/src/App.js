@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
-    BrowserRouter as Router,
+    BrowserRouter,
     Route,
     useParams,
     Routes
 } from 'react-router-dom';
-import Set from './components/set.jsx';
-import './App.css';
-import SetList from './components/setList.jsx';
-import OpponentList from './components/opponentList.jsx';
+import OpponentList from './components/opponentList.jsx'
+import SortList from './components/sortList.jsx';
+import SearchList from './components/searchList.jsx';
 
 const PlayerDetail = () => {
     let { playerId } = useParams();
@@ -63,102 +62,49 @@ const PlayerDetail = () => {
 // };
 
 function App() {
-    const opponents = [
-      {
-        opponentName: 'Diddy Kong',
-        headToHeadScore: '2-1',
-        sets: [
-          {
-            type: 'loss',
-            matches: [
-              {
-                playerChar: 'Steve',
-                opponentChar: 'Diddy Kong',
-                stage: 'N/A',
-                type: 'loss',
-                matchNum: 1,
+    const opponentLists = [
+        {
+          name: 'List 1',
+          opponents: [
+            {
+              opponentName: 'Dog',
+              headToHeadScore: '2-1',
+              sets: [
+                { type: 'win', matches: [{ playerChar: 'Steve', opponentChar: 'Diddy Kong', stage: 'N/A', type: 'loss', matchNum: 1 }] },
+                { type: 'loss', matches: [{ playerChar: 'Steve', opponentChar: 'Diddy Kong', stage: 'N/A', type: 'win', matchNum: 2 }] },
+              ],
+            },
+            {
+                opponentName: 'Cat',
+                headToHeadScore: '1-2',
+                sets: [
+                  { type: 'win', matches: [{ playerChar: 'Steve', opponentChar: 'Mario', stage: 'N/A', type: 'win', matchNum: 1 }] },
+                  { type: 'win', matches: [{ playerChar: 'Steve', opponentChar: 'Mario', stage: 'N/A', type: 'loss', matchNum: 2 }] },
+                ],
               },
-              {
-                playerChar: 'Mario',
-                opponentChar: 'Luigi',
-                stage: 'Final Destination',
-                type: 'win',
-                matchNum: 2,
-              },
-            ],
-          },
-          {
-            type: 'win',
-            matches: [
-              {
-                playerChar: 'Link',
-                opponentChar: 'Zelda',
-                stage: 'Battlefield',
-                type: 'win',
-                matchNum: 1,
-              },
-              {
-                playerChar: 'Samus',
-                opponentChar: 'Ridley',
-                stage: 'N/A',
-                type: 'win',
-                matchNum: 2,
-              },
-            ],
-          },
-        ],
-      },
-      {
-        opponentName: 'Luigi',
-        headToHeadScore: '3-2',
-        sets: [
-          {
-            type: 'win',
-            matches: [
-              {
-                playerChar: 'Peach',
-                opponentChar: 'Luigi',
-                stage: 'Final Destination',
-                type: 'win',
-                matchNum: 1,
-              },
-              {
-                playerChar: 'Bowser',
-                opponentChar: 'Luigi',
-                stage: 'Battlefield',
-                type: 'loss',
-                matchNum: 2,
-              },
-            ],
-          },
-          {
-            type: 'loss',
-            matches: [
-              {
-                playerChar: 'Yoshi',
-                opponentChar: 'Luigi',
-                stage: 'N/A',
-                type: 'loss',
-                matchNum: 1,
-              },
-              {
-                playerChar: 'Donkey Kong',
-                opponentChar: 'Luigi',
-                stage: 'Final Destination',
-                type: 'win',
-                matchNum: 2,
-              },
-            ],
-          },
-        ],
-      },
-      // Add more opponent objects as needed
-    ];
+            // Add more opponents as needed
+          ],
+        },
+        {
+          name: 'List 2',
+          opponents: [
+            {
+              opponentName: 'Opponent B',
+              headToHeadScore: '1-2',
+              sets: [
+                { type: 'win', matches: [{ playerChar: 'Steve', opponentChar: 'Mario', stage: 'N/A', type: 'win', matchNum: 1 }] },
+                { type: 'win', matches: [{ playerChar: 'Steve', opponentChar: 'Mario', stage: 'N/A', type: 'loss', matchNum: 2 }] },
+              ],
+            },
+            // Add more opponents as needed
+          ],
+        },
+        // Add more lists as needed
+      ];
       
-
   return (
     <div className="App">
-      <OpponentList opponents={opponents} />
+      <SearchList list={opponentLists[0]} ListComponent={OpponentList} searchField={'opponentName'}/>
     </div>
   );
 }

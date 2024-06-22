@@ -8,7 +8,7 @@ const SetList = ({ sets, opponentName, headToHeadScore }) => {
       <h1>Opponent: {opponentName}</h1>
       <h2>Head to Head Score: {headToHeadScore}</h2>
       {sets.map((set, index) => (
-        <Collapsible key={index} title={`Tournament: ${set.tournament}| Event: ${set.event} | Score:${set.score}`}>
+        <Collapsible key={index} title={`Set ${index + 1}`}>
           <Set type={set.type} matches={set.matches} />
         </Collapsible>
       ))}
