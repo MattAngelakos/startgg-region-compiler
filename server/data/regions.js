@@ -46,8 +46,8 @@ const createRegion = async (regionName, gameId, onlineAllowed, minimumEntrants, 
 }
 
 const getAllRegions = async () => {
-    const regions = await regions()
-    let regionList = await regions.find({}).toArray()
+    const regions2 = await regions()
+    let regionList = await regions2.find({}).toArray()
     if (!regionList) throw 'Could not get all region'
     return regionList
 }
