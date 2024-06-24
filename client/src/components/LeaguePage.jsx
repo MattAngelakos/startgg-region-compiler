@@ -4,6 +4,7 @@ import SearchBar from './SearchBar';
 import GameFilter from './GameFilter';
 import Results from './Results';
 import Pagination from './Pagination';
+import LeagueItem from './LeagueItem';
 
 const sortLev = (inputs, search, type) => {
     const searchLower = search.toLowerCase();
@@ -75,7 +76,10 @@ const LeaguePage = () => {
     const startIndex = (currentPage - 1) * perPage;
     const endIndex = startIndex + perPage;
     const currentLeagues = filteredLeagues.slice(startIndex, endIndex);
-
+    const leaguePropMapper = (league) => ({
+        league,
+        key: league.regionName
+      });
     return (
         <div className="app">
             <Header />
@@ -88,7 +92,7 @@ const LeaguePage = () => {
                     <GameFilter filters={filters} setFilters={setFilters} />
                     <button type="submit">Search</button>
                 </form>
-                <Results leagues={currentLeagues} />
+                <Results items={currentLeagues} Component={LeagueItem} propMapper={leaguePropMapper}/>
                 <Pagination
                     currentPage={currentPage}
                     totalItems={filteredLeagues.length}

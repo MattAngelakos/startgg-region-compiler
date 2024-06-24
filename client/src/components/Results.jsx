@@ -1,12 +1,10 @@
 import React from 'react';
-import LeagueItem from './LeagueItem';
 
-const Results = ({ leagues }) => {
-
+const Results = ({ items, Component, propMapper }) => {
   return (
     <div className="results">
-      {leagues.map((league) => (
-        <LeagueItem key={league.regionName} league={league} />
+      {items.map((item) => (
+        <Component key={item.id} {...propMapper(item)} />
       ))}
     </div>
   );
