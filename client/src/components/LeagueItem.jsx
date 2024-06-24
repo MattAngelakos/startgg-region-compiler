@@ -1,12 +1,16 @@
 import React from 'react';
+import calendar from '../assets/calenda.png';
+import game from '../assets/controlla.png';
+import person from '../assets/person.png';
 
 const LeagueItem = ({ league }) => {
-  let players = 0
-  let seasons = 0
-  for(const season of league.seasons){
-    players = players + season.players.length
-    seasons = seasons + 1
+  let players = 0;
+  let seasons = 0;
+  for (const season of league.seasons) {
+    players += season.players.length;
+    seasons += 1;
   }
+
   return (
     <div className="league-item">
       <img src={league.image} alt={`${league.region} logo`} className="league-logo" />
@@ -14,13 +18,13 @@ const LeagueItem = ({ league }) => {
         <h2>{league.regionName}</h2>
         <div className="league-details">
           <div className="league-game">
-            <i className="game-icon" /> {league.gameId}
+            <img src={game} alt="Game Icon" className="game-icon" /> {league.gameId}
           </div>
           <div className="league-events">
-            <i className="events-icon" /> {seasons}
+            <img src={calendar} alt="Events Icon" className="events-icon" /> {seasons}
           </div>
           <div className="league-players">
-            <i className="players-icon" /> {players}
+            <img src={person} alt="Players Icon" className="players-icon" /> {players}
           </div>
         </div>
       </div>
