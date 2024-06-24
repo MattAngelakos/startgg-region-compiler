@@ -33,7 +33,7 @@ router.get("/:regionId", async (req, res) => {
     }
 });
 
-router.get("/:regionId/:seasonName", async (req, res) => {
+router.get("/:regionId/seasons/:seasonName", async (req, res) => {
     let regionId = req.params.regionId;
     let seasonName = req.params.seasonName;
     seasonName = seasonName.trim()
@@ -52,7 +52,7 @@ router.get("/:regionId/:seasonName", async (req, res) => {
     }
 });
 
-router.get("/:regionId/:seasonName/players", async (req, res) => {
+router.get("/:regionId/seasons/:seasonName/players", async (req, res) => {
     let regionId = req.params.regionId;
     let seasonName = req.params.seasonName;
     seasonName = seasonName.trim()
@@ -76,7 +76,7 @@ router.get("/:regionId/:seasonName/players", async (req, res) => {
 });
 
 
-router.get("/:regionId/:seasonName/players/:playerId", async (req, res) => {
+router.get("/:regionId/seasons/:seasonName/players/:playerId", async (req, res) => {
     let regionId = req.params.regionId;
     let seasonName = req.params.seasonName;
     let playerId = req.params.playerId;

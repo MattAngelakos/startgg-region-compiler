@@ -4,7 +4,7 @@ const Results = ({ items, Component, propMapper }) => {
   return (
     <div className="results">
       {items.map((item) => (
-        <Component key={item.id} {...propMapper(item)} />
+        <Component key={item._id} {...propMapper(item)} />
       ))}
     </div>
   );

@@ -5,6 +5,17 @@ import person from '../assets/person.png';
 
 const SeasonItem = ({ regionId, season }) => {
   let players = season.players.length;
+  const startDate = new Date(season.startDate * 1000);
+  const endDate = new Date(season.endDate * 1000);
+  const formatDate = (date) => {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0'); 
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
+  };
+  const formattedStartDate = formatDate(startDate);
+  const formattedEndDate = formatDate(endDate);
+
   return (
     <div className="league-item">
       <img src={season.image} alt={`${season.seasonName} logo`} className="league-logo" />
@@ -14,7 +25,10 @@ const SeasonItem = ({ regionId, season }) => {
         </Link>
         <div className="league-details">
           <div className="league-events">
-            <img src={calendar} alt="Events Icon" className="events-icon" /> {season.startDate}
+            <img src={calendar} alt="Events Icon" className="events-icon" /> {formattedStartDate}
+          </div>
+          <div className="league-events">
+            {formattedEndDate}
           </div>
           <div className="league-players">
             <img src={person} alt="Players Icon" className="players-icon" /> {players}
@@ -26,3 +40,4 @@ const SeasonItem = ({ regionId, season }) => {
 };
 
 export default SeasonItem;
+
