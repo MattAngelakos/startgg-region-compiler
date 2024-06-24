@@ -44,11 +44,6 @@ const sortLev = (inputs, search, type) => {
     return inputs;
 }
 
-const initialLeagues = [
-    { name: 'NJ Ultimate', game: 'SSBU', events: 5, players: 827, image: '../assets/666f1ddf2c269822c2f0b19b.png' },
-    { name: 'NJ Melee', game: 'SSBM', events: 3, players: 420, image: '../assets/666f1ddf2c269822c2f0b19a.png' },
-];
-
 const LeaguePage = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [filters, setFilters] = useState({ SSBU: true, SSBM: true });
@@ -74,11 +69,9 @@ const LeaguePage = () => {
         return <div>Loading...</div>;
     }
     const filteredLeagues = sortLev(leagues, searchQuery, 'regionName');
-    console.log(filteredLeagues)
     const startIndex = (currentPage - 1) * perPage;
     const endIndex = startIndex + perPage;
     const currentLeagues = filteredLeagues.slice(startIndex, endIndex); 
-    console.log(currentLeagues)
     return (
         <div className="app">
             <Header />

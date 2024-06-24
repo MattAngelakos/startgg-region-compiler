@@ -62,14 +62,20 @@
 //     );
 // };
 
-import React, { useState } from 'react';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LeaguePage from './components/LeaguePage';
+import LeagueDetail from './components/LeagueDetail';
 
 const App = () => {
-    return <div>
-        <LeaguePage></LeaguePage>
-    </div>
+  return (
+    <Router>
+      <Routes>
+        <Route path="/regions" element={<LeaguePage />} />
+        <Route path="/regions/:regionId" element={<LeagueDetail />} />
+      </Routes>
+    </Router>
+  );
 };
 
 export default App;
-
