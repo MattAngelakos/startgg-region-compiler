@@ -66,6 +66,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LeaguePage from './components/LeaguePage';
 import LeagueDetail from './components/LeagueDetail';
+import SeasonPage from './components/SeasonPage';
 
 const App = () => {
   return (
@@ -73,6 +74,7 @@ const App = () => {
       <Routes>
         <Route path="/regions" element={<LeaguePage />} />
         <Route path="/regions/:regionId" element={<LeagueDetail />} />
+        <Route path="/regions/:regionId/seasons/:seasonName" element={<SeasonPage />} />
       </Routes>
     </Router>
   );
