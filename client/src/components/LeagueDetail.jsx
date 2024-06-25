@@ -32,7 +32,6 @@ const LeagueDetail = () => {
     useEffect(() => {
         const fetchRegionData = async () => {
             try {
-                let tournaments = []
                 const response = await fetch(`/regions/${regionId}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch region data');
