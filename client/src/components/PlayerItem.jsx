@@ -4,13 +4,22 @@ import trophy from '../assets/trophy.png';
 
 const PlayerItem = ({ player, gameId }) => {
     let tournaments = 0;
+    let mostPlayed = 0
+    let mostPlayedChar = "N/A"
+    let imageLink = 'N/A'
     for (const game of player.games) {
         if (game.gameId === gameId) {
             tournaments = game.tournaments.length;
+            for(const character of game.characters){
+                if(character.numOfPlays > mostPlayed){
+                    mostPlayedChar = character.characterName
+                    mostPlayed = character.numOfPlays
+                    imageLink = character.imageLink
+                }
+            }
             break;
         }
     }
-
     return (
         <div className="player-item">
             <img src={player.image} alt={`${player.gamerTag} logo`} className="player-logo" />
@@ -19,8 +28,11 @@ const PlayerItem = ({ player, gameId }) => {
                     <h2>{player.gamerTag}</h2>
                 </Link>
                 <div className="player-details">
-                    <div className="league-events">
+                    <div className="player-events">
                         <img src={trophy} alt="Trophy Icon" className="trophy-icon" /> {tournaments}
+                    </div>
+                    <div className="player-character">
+                        <img src={imageLink} alt="Character Icon" className="character-icon" /> {mostPlayedChar}
                     </div>
                 </div>
             </div>

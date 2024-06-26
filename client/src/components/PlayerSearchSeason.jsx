@@ -149,7 +149,7 @@ const PlayerSearchSeason = () => {
                                 onMouseDown={() => handlePlayerClick(player._id)}
                                 style={{ padding: '8px', cursor: 'pointer' }}
                             >
-                                {player.gamerTag}
+                                <PlayerItem player={player} gameId={gameId}/>
                             </li>
                         ))}
                     </ul>
