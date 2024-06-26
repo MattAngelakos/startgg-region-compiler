@@ -139,7 +139,7 @@ router.get("/:regionId/:seasonName/tournaments/:tournamentId/events/:eventId", a
     }
 });
 
-router.get("/:regionId/:seasonName/stats/head-to-head", async (req, res) => {
+router.get("/:regionId/seasons/:seasonName/stats/head-to-head", async (req, res) => {
     let regionId = req.params.regionId;
     let seasonName = req.params.seasonName;
     seasonName = seasonName.trim()
