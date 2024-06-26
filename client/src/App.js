@@ -20,6 +20,7 @@
 
 import React from 'react';
 import HeadToHeadChart from './components/HeadToHeadChart.jsx';
+import PlayerFilter from './components/PlayerFilter.jsx';
 
 const data = {
   Syrup: {
@@ -38,11 +39,10 @@ const data = {
     Tweek: { wins: 0, losses: 0 }
   }
 };
-
 function App() {
   return (
     <div className="App">
-      <HeadToHeadChart data={data} />
+      <PlayerFilter originalObject={data} />
     </div>
   );
 }
