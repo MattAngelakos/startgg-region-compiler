@@ -99,3 +99,50 @@ button {
   color: var(--violet-11);
   cursor: default;
 }
+
+.head-to-head-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; /* Ensures the cells have a fixed width */
+}
+
+.head-to-head-table th,
+.head-to-head-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+  width: calc(100% / 4); /* Adjust this value based on the number of columns */
+  box-sizing: border-box; /* Ensures padding and border are included in the width */
+}
+
+.head-to-head-table th {
+  background-color: #f4f4f4;
+}
+
+.green-cell {
+  background-color: #90ee90; 
+}
+
+.dark-green-cell {
+  background-color: #006400; 
+}
+
+.black-cell {
+  background-color: #000000; 
+}
+
+.yellow-cell {
+  background-color: #FFFF00
+}
+
+.red-cell {
+  background-color: #ffcccb;
+}
+
+.bright-red-cell {
+  background-color: #ee4b2b;
+}
+
+.gray-cell {
+  background-color: #d3d3d3; 
+}
