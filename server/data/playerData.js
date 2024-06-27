@@ -373,7 +373,7 @@ const playerFilter = async (regionId, seasonName) => {
 };
 
 
-const do_h2h = async (regionId, seasonName) => {
+const do_h2h = async (regionId, seasonName, tournaments) => {
     let opponentIndex
     let h2h = {}
     let region = await getRegion(regionId)
@@ -383,7 +383,10 @@ const do_h2h = async (regionId, seasonName) => {
     let i = 0
     for(const playerId of region.seasons[seasonIndex].players){
         try{
-            const player = await seasonFilter(regionId, seasonName, playerId)
+            let player = await seasonFilter(regionId, seasonName, playerId)
+            if(tournaments){
+                player = await tournamentFilter(player, region.gameId, tournaments)
+            }
             i = i+1
             let newPlayerH2H = {
                 id: playerId,
@@ -415,7 +418,6 @@ const do_h2h = async (regionId, seasonName) => {
         }
         catch(e){
             console.error(e)
-            console.error(`no season for ${seasonName} ${player.gamerTag}`)
             h2h.forEach(obj => {
                 delete obj[player.gamerTag];
             });
@@ -501,13 +503,12 @@ const updateNames = async (playerIds) => {
     return changes
 }
 
-const tournamentFilter = async (playerId, videogameId, eventIds) => {
+const tournamentFilter = async (player, videogameId, eventIds) => {
     for(const eventId of eventIds){
         numCheck(eventId, "eventId")
         intCheck(eventId, "eventId")
     }
-    let player = await getPlayer(playerId)
-    const videogameIndex = await getGameFromPlayer(playerId, videogameId)
+    const videogameIndex = await getGameFromPlayer(parseInt(player._id), videogameId)
     player.games[videogameIndex].tournaments = player.games[videogameIndex].tournaments.filter(event => !eventIds.includes(event.eventId))
     for(let i = 0; i < player.games[videogameIndex].opponents.length; i++){
         player.games[videogameIndex].opponents[i].tournaments = player.games[videogameIndex].opponents[i].tournaments.filter(event => !eventIds.includes(event.eventId))
@@ -884,8 +885,51 @@ const getEventResultsByRegion = async (regionId, seasonName, tournamentId, event
     return results
 }
 
+const getTournamentsBySeason = async (regionId, seasonName) =>{
+    const region = await getRegion(regionId)
+    const seasonIndex = await getSeason(regionId, seasonName)
+    let player, gameIndex
+    let results = []
+    for(const playerId of region.seasons[seasonIndex].players){
+        try{
+            player = await getPlayer(playerId)
+        }catch(e){
+            console.log(`${playerId} does not exist`)
+            continue
+        }
+        try{
+            gameIndex = await getGameFromPlayer(playerId, region.gameId)
+        }catch(e){
+            console.log(`${playerId} does not have gameId ${region.gameId}}`)
+            continue
+        }
+        try{
+            player = await seasonFilter(regionId, seasonName, playerId)
+            for(let bracket of player.games[gameIndex].tournaments){
+                const index = results.findIndex(result => result.eventId === bracket.eventId)
+                if(index === -1){
+                    const tournament = await getMainTournament(bracket.tournamentId)
+                    const eventIndex = await getTournament(bracket.tournamentId, bracket.eventId)
+                    let tournamentObject = {
+                        tournamentId: bracket.tournamentId,
+                        eventId: bracket.eventId,
+                        nameOfBracket: `${tournament.tournamentName}: ${tournament.events[eventIndex].eventName}`
+                    }
+                    results.push(tournamentObject)
+                }
+            }
+        }catch(e){
+            console.log(e)
+            console.log(`${playerId} does not have eventId ${eventId}`)
+            continue
+        }
+    }
+    return results
+}
+
 export{
     setsRequest,
+    getTournamentsBySeason,
     do_h2h,
     calcAvgPlacement,
     updateNames,

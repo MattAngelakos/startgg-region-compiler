@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './styles/styles.css';
-import HeadToHeadChart from './HeadToHeadChart';
+import HeadToHeadChart from './HeadToHeadChart'; 
 
 const PlayerFilter = (originalObject) => {
     originalObject = originalObject.originalObject
@@ -50,8 +50,6 @@ const PlayerFilter = (originalObject) => {
                     <button onClick={handleSubmit}>Submit</button>
                 </div>
             )}
-
-            <h2>Filtered Object</h2>
             <HeadToHeadChart data={filteredObject}/>
         </div>
     );

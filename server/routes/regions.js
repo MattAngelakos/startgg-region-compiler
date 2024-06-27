@@ -1,8 +1,8 @@
 import express from "express";
 import { getAllRegions, getRegion } from "../data/regions.js";
 import { getSeason } from "../data/seasons.js";
-import { do_h2h, finish_h2h, getEventResultsByRegion, seasonFilter } from "../data/playerData.js";
-import { atLeast } from "../helpers.js";
+import { do_h2h, finish_h2h, getEventResultsByRegion, getTournamentsBySeason, seasonFilter } from "../data/playerData.js";
+import { arrayCheck, atLeast, intCheck, numCheck } from "../helpers.js";
 import { getPlayer } from "../data/players.js";
 const router = express.Router();
 
@@ -103,7 +103,7 @@ router.get("/:regionId/seasons/:seasonName/players/:playerId", async (req, res) 
     }
 });
 
-router.get("/:regionId/:seasonName/tournaments/:tournamentId/events/:eventId", async (req, res) => {
+router.get("/:regionId/seasons/:seasonName/tournaments/:tournamentId/events/:eventId", async (req, res) => {
     let regionId = req.params.regionId;
     let seasonName = req.params.seasonName;
     let tournamentId = req.params.tournamentId;
@@ -142,14 +142,75 @@ router.get("/:regionId/:seasonName/tournaments/:tournamentId/events/:eventId", a
 router.get("/:regionId/seasons/:seasonName/stats/head-to-head", async (req, res) => {
     let regionId = req.params.regionId;
     let seasonName = req.params.seasonName;
-    seasonName = seasonName.trim()
-    atLeast(seasonName, 1, "seasonName")
-    seasonName = seasonName.toLowerCase()
+    try{
+        seasonName = seasonName.trim()
+        atLeast(seasonName, 1, "seasonName")
+        seasonName = seasonName.toLowerCase()
+    }catch(e){
+        return res.status(400).json({ error: 'season name be a non empty string' });
+    }
     try {
         let h2h = await do_h2h(regionId, seasonName)
         h2h = await finish_h2h(h2h)
         res.status(200).json({
             h2h: h2h,
+        });
+    } catch (error) {
+        res.status(500).json({
+            error: error,
+        });
+    }
+})
+
+router.post("/:regionId/seasons/:seasonName/stats/head-to-head", async (req, res) => {
+    let { regionId, seasonName } = req.params;
+    const { tournaments } = req.body;
+    try{
+        parseInt(regionId)
+    }catch(e){
+        return res.status(401).json({ error: 'regionId be an int' });
+    }
+    try{
+        seasonName = seasonName.trim()
+        atLeast(seasonName, 1, "seasonName")
+        seasonName = seasonName.toLowerCase()
+    }catch(e){
+        return res.status(402).json({ error: 'season name be a non empty string' });
+    }
+    try{
+        arrayCheck(tournaments)
+    }catch(e){
+        return res.status(403).json({ error: 'tournaments must be an array' });
+    }
+    try {
+        let h2h = await do_h2h(regionId, seasonName, tournaments)
+        h2h = await finish_h2h(h2h)
+        res.status(200).json({
+            h2h: h2h,
+        });
+    } catch (error) {
+        
+        console.log(error)
+        res.status(500).json({
+            error: error,
+        });
+    }
+})
+
+router.get("/:regionId/seasons/:seasonName/tournaments", async (req, res) => {
+    let regionId = req.params.regionId;
+    let seasonName = req.params.seasonName;
+    try{
+        seasonName = seasonName.trim()
+        atLeast(seasonName, 1, "seasonName")
+        seasonName = seasonName.toLowerCase()
+    }catch(e){
+        return res.status(400).json({ error: 'season name be a non empty string' });
+    }
+    try {
+        const results = await getTournamentsBySeason(regionId, seasonName)
+        res.status(200).json({
+            results: results,
         });
     } catch (error) {
         res.status(500).json({

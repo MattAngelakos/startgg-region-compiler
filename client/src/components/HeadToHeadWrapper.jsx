@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Header from './Header';
+import TournamentFilter from './TournamentFilter';
 import PlayerFilter from './PlayerFilter';
 
 const HeadToHeadWrapper = () => {
     const { regionId, seasonName } = useParams();
     const [head2head, setHead2Head] = useState(null);
+    const [tournaments, setTournaments] = useState([]);
+
     useEffect(() => {
         const fetchRegionData = async () => {
             try {
@@ -14,25 +17,67 @@ const HeadToHeadWrapper = () => {
                     throw new Error('Failed to fetch region data');
                 }
                 const data = await response.json();
-                setHead2Head(data.h2h)
+                setHead2Head(data.h2h);
             } catch (error) {
-                console.error('Error fetching season data:', error);
+                console.error('Error fetching head-to-head data:', error);
             }
         };
+
+        const fetchTournaments = async () => {
+            try {
+                const response = await fetch(`/regions/${regionId}/seasons/${seasonName}/tournaments`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch regional tournament data');
+                }
+                const data = await response.json();
+                setTournaments(data.results);
+            } catch (error) {
+                console.error('Error fetching tournaments data:', error);
+            }
+        };
+
         fetchRegionData();
+        fetchTournaments();
     }, [regionId, seasonName]);
-    if (!head2head) {
+
+    const filterh2h = async (filteredTournaments) => {
+        try {
+            let eventIds = filteredTournaments.map(tournament => tournament.eventId);
+            const response = await fetch(`/regions/${regionId}/seasons/${seasonName}/stats/head-to-head`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ tournaments: eventIds }),
+            });
+            if (!response.ok) {
+                throw new Error('Failed to fetch filtered head-to-head data');
+            }
+            const data = await response.json();
+            setHead2Head(data.h2h); 
+            console.log(data.h2h)
+        } catch (error) {
+            console.error('Error fetching filtered head-to-head data:', error);
+        }
+    };
+
+    if (!head2head || tournaments.length === 0) {
         return <div>Loading...</div>;
     }
+
     return (
         <div className="app">
             <Header />
             <main>
                 <h1>League Head2Head Detail for {regionId}</h1>
-                <PlayerFilter originalObject={head2head}/>
+                <TournamentFilter
+                    tournaments={tournaments}
+                    filterh2h={filterh2h}
+                />
+                <PlayerFilter originalObject={head2head} />
             </main>
         </div>
     );
-}
+};
 
 export default HeadToHeadWrapper;
