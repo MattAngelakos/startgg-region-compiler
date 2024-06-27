@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Header from './Header';
 import TournamentFilter from './TournamentFilter';
+import HeadToHeadChart from './HeadToHeadChart';
 import PlayerFilter from './PlayerFilter';
 
 const HeadToHeadWrapper = () => {
@@ -54,8 +55,7 @@ const HeadToHeadWrapper = () => {
                 throw new Error('Failed to fetch filtered head-to-head data');
             }
             const data = await response.json();
-            setHead2Head(data.h2h); 
-            console.log(data.h2h)
+            setHead2Head(data.h2h)
         } catch (error) {
             console.error('Error fetching filtered head-to-head data:', error);
         }

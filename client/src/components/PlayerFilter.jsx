@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './styles/styles.css';
-import HeadToHeadChart from './HeadToHeadChart'; 
+import HeadToHeadChart from './HeadToHeadChart';
 
-const PlayerFilter = (originalObject) => {
-    originalObject = originalObject.originalObject
-    const [selectedPlayers, setSelectedPlayers] = useState(
-        Object.keys(originalObject)
-    );
-    const [filteredObject, setFilteredObject] = useState(originalObject);
+const PlayerFilter = ({ originalObject }) => {
+    const [selectedPlayers, setSelectedPlayers] = useState([]);
+    const [filteredObject, setFilteredObject] = useState({});
     const [dropdownVisible, setDropdownVisible] = useState(false);
+
+    useEffect(() => {
+        setSelectedPlayers(Object.keys(originalObject));
+        setFilteredObject(originalObject);
+    }, [originalObject]);
 
     const handleCheckboxChange = (player) => {
         setSelectedPlayers((prevSelectedPlayers) =>
@@ -26,7 +28,7 @@ const PlayerFilter = (originalObject) => {
                 return obj;
             }, {});
         setFilteredObject(newFilteredObject);
-        setDropdownVisible(false); 
+        setDropdownVisible(false);
     };
 
     return (
@@ -50,7 +52,7 @@ const PlayerFilter = (originalObject) => {
                     <button onClick={handleSubmit}>Submit</button>
                 </div>
             )}
-            <HeadToHeadChart data={filteredObject}/>
+            <HeadToHeadChart data={filteredObject} />
         </div>
     );
 };

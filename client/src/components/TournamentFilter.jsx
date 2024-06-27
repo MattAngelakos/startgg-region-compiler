@@ -15,7 +15,7 @@ const TournamentFilter = ({ tournaments, filterh2h }) => {
     };
     const handleSubmit = async () => {
         const newFilteredArray = tournaments.filter(tournament =>
-            selectedTournaments.includes(tournament.nameOfBracket)
+            !selectedTournaments.includes(tournament.nameOfBracket)
         );
         await filterh2h(newFilteredArray);
         setDropdownVisible(false);
