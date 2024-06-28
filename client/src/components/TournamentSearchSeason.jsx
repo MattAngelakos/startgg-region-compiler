@@ -22,7 +22,7 @@ const TournamentSearchSeason = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        setFilterTournamentsQuery(tournamentsQuery);
+        setFilterTournamentsQuery(searchQuery);
         console.log('Search Tournaments:', tournamentsQuery);
     }
     const handleInputChange = (event) => {
@@ -31,7 +31,6 @@ const TournamentSearchSeason = () => {
     };
     const handlePlayerClick = (eventId) => {
         setDropdownVisible(false);
-        console.log(location.pathname)
         navigate(`${location.pathname}/${eventId}`);
     };
     useEffect(() => {
@@ -87,6 +86,7 @@ const TournamentSearchSeason = () => {
                                                     }
                                                     const eventData = await response.json()
                                                     brackets.push({
+                                                        _id: tournamentData.tournament._id,
                                                         tournament: tournamentData.tournament,
                                                         event: eventData[tournamentData.tournament._id]
                                                     })
@@ -110,7 +110,6 @@ const TournamentSearchSeason = () => {
                 } catch (error) {
                     console.error(`Error fetching players for season ${season.seasonName}:`, error);
                 }
-                console.log(brackets)
                 setTournaments(brackets)
                 setSeason(season);
             } catch (error) {
@@ -119,13 +118,13 @@ const TournamentSearchSeason = () => {
         };
         fetchRegionData();
     }, [seasonName, regionId]);
-    const seasonPropMapper =(
+    const seasonTournamentMapper =(
         (tournament) => ({
+            _id: tournament.tournament._id,
             tournament: tournament.tournament,
             event: tournament.event,
         })
     );
-
     const filteredTournaments = useMemo(() => {
         if (!tournaments) return [];
         return sortLev2(tournaments, filterTournamentsQuery, 'tournamentName');
@@ -168,7 +167,7 @@ const TournamentSearchSeason = () => {
                         ))}
                     </ul>
                 )}
-                <Results items={currentTournaments} Component={TournamentItem} propMapper={seasonPropMapper} />
+                <Results items={currentTournaments} Component={TournamentItem} propMapper={seasonTournamentMapper} />
                 <Pagination
                     currentPage={currentPage}
                     totalItems={filteredTournaments.length}
