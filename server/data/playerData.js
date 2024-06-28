@@ -427,7 +427,7 @@ const do_h2h = async (regionId, seasonName, tournaments) => {
     return h2h
 }
 
-const finish_h2h = async (h2h) => {
+const finish_h2h = (h2h) => {
     const keys = Object.keys(h2h)
     for (let i = keys.length - 1; i >= 0; i--) {
         //console.log(`i: ${keys[i]}`)
@@ -1008,8 +1008,8 @@ const do_glicko2 = (h2h) => {
         const uPrime = player.rating + pPrime * pPrime * dInner;
         return {uPrime, pPrime, sPrime}
     }
-    function decay() {
-        const pPrime = sqrt(p * p + s * s);
+    function decay(p, s) {
+        const pPrime = Math.pow((p * p + s * s), 0.5);
         return pPrime
     }
     function Convergence(d, v, p, s) {
@@ -1056,7 +1056,7 @@ const do_glicko2 = (h2h) => {
     }
     for (let player in h2h) {
         for (let opponent in h2h[player]) {
-            if (opponent !== 'id' && opponent !== 'rating' && opponent !== 'deviation' && opponent != 'volatility' && opponent !== 'elo') {
+            if (opponent !== 'id' && opponent !== 'rating' && opponent !== 'deviation' && opponent !== 'volatility' && opponent !== 'elo') {
                 const wins = h2h[player][opponent].wins;
                 const losses = h2h[player][opponent].losses;
                 let updatedRatings

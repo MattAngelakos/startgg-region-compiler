@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Header from './Header';
 import TournamentFilter from './TournamentFilter';
-import HeadToHeadChart from './HeadToHeadChart';
 import PlayerFilter from './PlayerFilter';
 
 const HeadToHeadWrapper = () => {
     const { regionId, seasonName } = useParams();
     const [head2head, setHead2Head] = useState(null);
+    const [originalH2H, setOriginalHead2Head] = useState(null);
     const [tournaments, setTournaments] = useState([]);
 
     useEffect(() => {
@@ -19,6 +19,7 @@ const HeadToHeadWrapper = () => {
                 }
                 const data = await response.json();
                 setHead2Head(data.h2h);
+                setOriginalHead2Head(data.unfinished_h2h)
             } catch (error) {
                 console.error('Error fetching head-to-head data:', error);
             }
@@ -56,12 +57,13 @@ const HeadToHeadWrapper = () => {
             }
             const data = await response.json();
             setHead2Head(data.h2h)
+            setOriginalHead2Head(data.originalH2H)
         } catch (error) {
             console.error('Error fetching filtered head-to-head data:', error);
         }
     };
 
-    if (!head2head || tournaments.length === 0) {
+    if (!head2head || tournaments.length === 0 || !originalH2H) {
         return <div>Loading...</div>;
     }
 
@@ -74,7 +76,7 @@ const HeadToHeadWrapper = () => {
                     tournaments={tournaments}
                     filterh2h={filterh2h}
                 />
-                <PlayerFilter originalObject={head2head} />
+                <PlayerFilter originalObject={head2head} originalH2H={originalH2H}/>
             </main>
         </div>
     );

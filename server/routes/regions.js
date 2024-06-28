@@ -4,6 +4,7 @@ import { getSeason } from "../data/seasons.js";
 import { do_elo, do_glicko2, do_h2h, finish_h2h, getEventResultsByRegion, getTournamentsBySeason, seasonFilter } from "../data/playerData.js";
 import { arrayCheck, atLeast, intCheck, numCheck } from "../helpers.js";
 import { getPlayer } from "../data/players.js";
+import _ from 'lodash';
 const router = express.Router();
 
 router.get("/", async (req, res) => {
@@ -150,12 +151,14 @@ router.get("/:regionId/seasons/:seasonName/stats/head-to-head", async (req, res)
         return res.status(400).json({ error: 'season name be a non empty string' });
     }
     try {
-        let h2h = await do_h2h(regionId, seasonName)
+        const unfinished_h2h = await do_h2h(regionId, seasonName)
+        let h2h = _.cloneDeep(unfinished_h2h);
         h2h = do_elo(h2h)
         h2h = do_glicko2(h2h)
-        h2h = await finish_h2h(h2h)
+        h2h = finish_h2h(h2h)
         res.status(200).json({
             h2h: h2h,
+            unfinished_h2h: unfinished_h2h
         });
     } catch (error) {
         console.log(error)
@@ -186,10 +189,13 @@ router.post("/:regionId/seasons/:seasonName/stats/head-to-head", async (req, res
         return res.status(403).json({ error: 'tournaments must be an array' });
     }
     try {
-        let h2h = await do_h2h(regionId, seasonName, tournaments)
-        h2h = await finish_h2h(h2h)
+        let unfinished_h2h = await do_h2h(regionId, seasonName, tournaments)
+        let h2h = do_elo(unfinished_h2h)
+        h2h = do_glicko2(unfinished_h2h)
+        h2h = finish_h2h(h2h)
         res.status(200).json({
             h2h: h2h,
+            unfinished_h2h: unfinished_h2h
         });
     } catch (error) {
 

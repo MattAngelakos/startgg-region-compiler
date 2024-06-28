@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './styles/styles.css';
 import HeadToHeadChart from './HeadToHeadChart';
+import { do_elo, do_glicko2, finish_h2h } from '../helpers';
 
-const PlayerFilter = ({ originalObject }) => {
+const PlayerFilter = ({ originalObject, originalH2H }) => {
     const [selectedPlayers, setSelectedPlayers] = useState([]);
     const [filteredObject, setFilteredObject] = useState({});
     const [dropdownVisible, setDropdownVisible] = useState(false);
@@ -21,12 +22,22 @@ const PlayerFilter = ({ originalObject }) => {
     };
 
     const handleSubmit = () => {
-        const newFilteredObject = Object.keys(originalObject)
+        let newFilteredObject = Object.keys(originalH2H)
             .filter((key) => selectedPlayers.includes(key))
             .reduce((obj, key) => {
-                obj[key] = originalObject[key];
+                let filteredNestedObject = Object.keys(originalH2H[key])
+                    .filter((nestedKey) => selectedPlayers.includes(nestedKey) || nestedKey === 'elo' || nestedKey === 'rating' || nestedKey === 'deviation' || nestedKey === 'id' || nestedKey === 'volatility')
+                    .reduce((nestedObj, nestedKey) => {
+                        nestedObj[nestedKey] = originalH2H[key][nestedKey];
+                        return nestedObj;
+                    }, {});
+
+                obj[key] = filteredNestedObject;
                 return obj;
             }, {});
+        newFilteredObject = do_elo(newFilteredObject)
+        newFilteredObject = do_glicko2(newFilteredObject)
+        newFilteredObject = finish_h2h(newFilteredObject)
         setFilteredObject(newFilteredObject);
         setDropdownVisible(false);
     };
