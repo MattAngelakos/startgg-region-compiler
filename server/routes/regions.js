@@ -1,7 +1,7 @@
 import express from "express";
 import { getAllRegions, getRegion } from "../data/regions.js";
 import { getSeason } from "../data/seasons.js";
-import { do_h2h, finish_h2h, getEventResultsByRegion, getTournamentsBySeason, seasonFilter } from "../data/playerData.js";
+import { do_elo, do_glicko2, do_h2h, finish_h2h, getEventResultsByRegion, getTournamentsBySeason, seasonFilter } from "../data/playerData.js";
 import { arrayCheck, atLeast, intCheck, numCheck } from "../helpers.js";
 import { getPlayer } from "../data/players.js";
 const router = express.Router();
@@ -151,11 +151,14 @@ router.get("/:regionId/seasons/:seasonName/stats/head-to-head", async (req, res)
     }
     try {
         let h2h = await do_h2h(regionId, seasonName)
+        h2h = do_elo(h2h)
+        h2h = do_glicko2(h2h)
         h2h = await finish_h2h(h2h)
         res.status(200).json({
             h2h: h2h,
         });
     } catch (error) {
+        console.log(error)
         res.status(500).json({
             error: error,
         });
@@ -189,7 +192,7 @@ router.post("/:regionId/seasons/:seasonName/stats/head-to-head", async (req, res
             h2h: h2h,
         });
     } catch (error) {
-        
+
         console.log(error)
         res.status(500).json({
             error: error,
