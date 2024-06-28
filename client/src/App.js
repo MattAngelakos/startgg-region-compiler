@@ -5,6 +5,7 @@ import LeagueDetail from './components/LeagueDetail';
 import SeasonPage from './components/SeasonPage';
 import PlayerSearchSeason from './components/PlayerSearchSeason';
 import HeadToHeadWrapper from './components/HeadToHeadWrapper';
+import TournamentSearchSeason from './components/TournamentSearchSeason';
 
 const App = () => {
   return (
@@ -14,6 +15,7 @@ const App = () => {
         <Route path="/regions/:regionId" element={<LeagueDetail />} />
         <Route path="/regions/:regionId/seasons/:seasonName" element={<SeasonPage />} />
         <Route path="/regions/:regionId/seasons/:seasonName/players" element={<PlayerSearchSeason/>} />
+        <Route path="/regions/:regionId/seasons/:seasonName/tournaments" element={<TournamentSearchSeason/>} />
         <Route path="/regions/:regionId/seasons/:seasonName/h2h-chart" element={<HeadToHeadWrapper/>} />
       </Routes>
     </Router>

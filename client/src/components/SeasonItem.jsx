@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import calendar from '../assets/calenda.png';
 import person from '../assets/person.png';
 import trophy from '../assets/trophy.png';
+import { formatDate } from '../helpers';
 
 const SeasonItem = ({ regionId, season }) => {
   const { seasonName: urlSeasonName } = useParams();
@@ -20,13 +21,6 @@ const SeasonItem = ({ regionId, season }) => {
 
   const startDate = new Date(season.startDate * 1000);
   const endDate = new Date(season.endDate * 1000);
-
-  const formatDate = (date) => {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${month}/${day}/${year}`;
-  };
 
   const formattedStartDate = formatDate(startDate);
   const formattedEndDate = formatDate(endDate);
