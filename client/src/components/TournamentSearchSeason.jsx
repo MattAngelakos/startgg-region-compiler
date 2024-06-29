@@ -128,34 +128,39 @@ const TournamentSearchSeason = () => {
 
     let filteredTournaments = useMemo(() => {
         if (!tournaments) return [];
-        return sortLev2(tournaments, filterTournamentsQuery, 'tournamentName');
-    }, [tournaments, filterTournamentsQuery]);
+        let brackets
+        switch (sortKey) {
+            case '-tournamentName':
+                brackets = tournaments.sort((a, b) => b.tournament.tournamentName.localeCompare(a.tournament.tournamentName));
+                break;
+            case 'tournamentName':
+                brackets = tournaments.sort((a, b) => a.tournament.tournamentName.localeCompare(b.tournament.tournamentName));
+                break;
+            case 'entrants':
+                brackets = tournaments.sort((a, b) => b.event.entrants - a.event.entrants);
+                break;
+            case '-entrants':
+                brackets = tournaments.sort((a, b) => a.event.entrants - b.event.entrants);
+                break;
+            case '-startAt':
+                brackets = tournaments.sort((a, b) => b.event.startAt - a.event.startAt);
+                break;
+            case 'startAt':
+                brackets = tournaments.sort((a, b) => a.event.startAt - b.event.startAt);
+                break;
+            default:
+                break;
+        }
+        if(filterTournamentsQuery !== ''){
+            return sortLev2(brackets, filterTournamentsQuery, 'tournamentName');
+        }
+        else{
+            return brackets
+        }
+    }, [tournaments, filterTournamentsQuery, sortKey]);
 
     if (!filteredTournaments) {
         return <div>Loading...</div>;
-    }
-
-    switch (sortKey) {
-        case '-tournamentName':
-            filteredTournaments = filteredTournaments.sort((a, b) => b.tournament.tournamentName.localeCompare(a.tournament.tournamentName));
-            break;
-        case 'tournamentName':
-            filteredTournaments = filteredTournaments.sort((a, b) => a.tournament.tournamentName.localeCompare(b.tournament.tournamentName));
-            break;
-        case 'entrants':
-            filteredTournaments = filteredTournaments.sort((a, b) => b.event.entrants - a.event.entrants);
-            break;
-        case '-entrants':
-            filteredTournaments = filteredTournaments.sort((a, b) => a.event.entrants - b.event.entrants);
-            break;
-        case '-startAt':
-            filteredTournaments = filteredTournaments.sort((a, b) => a.event.startAt - b.event.startAt);
-            break;
-        case 'startAt':
-            filteredTournaments = filteredTournaments.sort((a, b) => b.event.startAt - a.event.startAt);
-            break;
-        default:
-            break;
     }
 
     let filteredTournaments2 = filteredTournaments.filter(tournament =>
@@ -175,7 +180,7 @@ const TournamentSearchSeason = () => {
                     <label>Sort by: </label>
                     <select onChange={(e) => setSortKey(e.target.value)} value={sortKey}>
                         <option value="tournamentName">Alphanumerical</option>
-                        <option value="-tournamentName">ReverseAlphanumerical</option>
+                        <option value="-tournamentName">Reverse Alphanumerical</option>
                         <option value="entrants">Highest Entrants</option>
                         <option value="-entrants">Lowest Entrants</option>
                         <option value="-startAt">Earliest Date</option>
