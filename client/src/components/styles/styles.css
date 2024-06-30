@@ -3,8 +3,7 @@
 @import '@radix-ui/colors/violet.css';
 
 button,
-fieldset,
-input {
+fieldset{
   all: unset;
 }
 
@@ -225,7 +224,6 @@ input {
 }
 
 .popover-result {
-  flex: 1;
   text-align: right;
   padding-left: 8px;
 }

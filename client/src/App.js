@@ -7,10 +7,10 @@ import PlayerSearchSeason from './components/PlayerSearchSeason';
 import HeadToHeadWrapper from './components/HeadToHeadWrapper';
 import TournamentSearchSeason from './components/TournamentSearchSeason';
 import { do_elo, do_glicko2, finish_h2h } from './helpers';
-import HeadToHeadChart from './components/HeadToHeadChart';
+import PlayerFilter from './components/PlayerFilter';
 
 const App = () => {
-  let h2h = {
+  let unfinished_h2h = {
     Sola: {
       id: 1,
       Syrup: { wins: 0, losses: 0 },
@@ -387,7 +387,7 @@ const App = () => {
       id: 23
     }
   }
-  h2h = do_elo(h2h)
+  let h2h = do_elo(unfinished_h2h)
   h2h = do_glicko2(h2h)
   h2h = finish_h2h(h2h)
   return (
@@ -401,7 +401,7 @@ const App = () => {
     //     <Route path="/regions/:regionId/seasons/:seasonName/h2h-chart" element={<HeadToHeadWrapper/>} />
     //   </Routes>
     // </Router>
-    <HeadToHeadChart data={h2h} />
+    <PlayerFilter originalObject={h2h} originalH2H={unfinished_h2h}/>
   );
 };
 
