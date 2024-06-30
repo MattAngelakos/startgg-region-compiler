@@ -17,12 +17,13 @@ const PlayerSearchSeason = () => {
     const [dropdownVisible, setDropdownVisible] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [perPage, setPerPage] = useState(10);
+    const [sortKey, setSortKey] = useState('tournamentName');
     const navigate = useNavigate();
     const location = useLocation();
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        setFilterPlayersQuery(playersQuery);
+        setFilterPlayersQuery(searchQuery);
         console.log('Search Players:', playersQuery);
     }
     const handleInputChange = (event) => {
@@ -31,7 +32,6 @@ const PlayerSearchSeason = () => {
     };
     const handlePlayerClick = (playerId) => {
         setDropdownVisible(false);
-        console.log(location.pathname)
         navigate(`${location.pathname}/${playerId}`);
     };
     useEffect(() => {
@@ -95,6 +95,13 @@ const PlayerSearchSeason = () => {
                         })
                     )
                     season.players = playersData.players
+                    for (let player of season.players)
+                        for (let game of player.games) {
+                            if (game.gameId === region.gameId) {
+                                player.tournaments = game.tournaments.length;
+                                break;
+                            }
+                        }
                 } catch (error) {
                     console.error(`Error fetching players for season ${season.seasonName}:`, error);
                 }
@@ -114,8 +121,35 @@ const PlayerSearchSeason = () => {
     );
     let filteredPlayers = useMemo(() => {
         if (!season) return [];
-        return sortLev(season.players, filterPlayersQuery, 'gamerTag')
-    }, [season, filterPlayersQuery]);
+        let players
+        switch (sortKey) {
+            case '-tournamentName':
+                players = (season.players).sort((a, b) => b.gamerTag.localeCompare(a.gamerTag));
+                break;
+            case 'tournamentName':
+                players = (season.players).sort((a, b) => a.gamerTag.localeCompare(b.gamerTag));
+                break;
+            case 'entrants':
+                players = (season.players).sort((a, b) => b.tournaments - a.tournaments);
+                break;
+            case '-entrants':
+                players = (season.players).sort((a, b) => a.tournaments - b.tournaments);
+                break;
+            default:
+                players = season.players
+                break;
+        }
+        if (filterPlayersQuery !== '') {
+            return sortLev(players, filterPlayersQuery, 'gamerTag');
+        }
+        else {
+            console.log(players)
+            return players
+        }
+    }, [season, filterPlayersQuery, sortKey]);
+    if (!filteredPlayers) {
+        return <div>Loading...</div>;
+    }
     let filteredPlayers2 = filteredPlayers.filter(player =>
         player.gamerTag.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -127,9 +161,18 @@ const PlayerSearchSeason = () => {
     }
     return (
         <div className="app">
-            <Header link={`/regions/${regionId}/seasons/${seasonName}`}linkname={seasonName}/>
+            <Header link={`/regions/${regionId}/seasons/${seasonName}`} linkname={seasonName} />
             <main>
                 <h1>League Detail for {regionId}</h1>
+                <div className="sort-options">
+                    <label>Sort by: </label>
+                    <select onChange={(e) => setSortKey(e.target.value)} value={sortKey}>
+                        <option value="tournamentName">Alphanumerical</option>
+                        <option value="-tournamentName">Reverse Alphanumerical</option>
+                        <option value="entrants">Most Brackets</option>
+                        <option value="-entrants">Lowest Brackets</option>
+                    </select>
+                </div>
                 <form onSubmit={handleSubmit}>
                     <input
                         type="text"
@@ -149,7 +192,7 @@ const PlayerSearchSeason = () => {
                                 onMouseDown={() => handlePlayerClick(player._id)}
                                 style={{ padding: '8px', cursor: 'pointer' }}
                             >
-                                <PlayerItem player={player} gameId={gameId}/>
+                                <PlayerItem player={player} gameId={gameId} />
                             </li>
                         ))}
                     </ul>

@@ -8,6 +8,7 @@ import HeadToHeadWrapper from './components/HeadToHeadWrapper';
 import TournamentSearchSeason from './components/TournamentSearchSeason';
 import { do_elo, do_glicko2, finish_h2h } from './helpers';
 import PlayerFilter from './components/PlayerFilter';
+import PlayerPage from './components/PlayerPage';
 
 const App = () => {
   let unfinished_h2h = {
@@ -399,6 +400,7 @@ const App = () => {
         <Route path="/regions/:regionId/seasons/:seasonName/players" element={<PlayerSearchSeason/>} />
         <Route path="/regions/:regionId/seasons/:seasonName/tournaments" element={<TournamentSearchSeason/>} />
         <Route path="/regions/:regionId/seasons/:seasonName/h2h-chart" element={<HeadToHeadWrapper/>} />
+        <Route path="/players/:playerId" element={<PlayerPage/>} />
       </Routes>
     </Router>
     // <PlayerFilter originalObject={h2h} originalH2H={unfinished_h2h}/>

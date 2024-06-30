@@ -39,7 +39,7 @@ router.get("/:playerId", async (req, res) => {
     }
 });
 
-router.get("/:playerId/:gameId", async (req, res) => {
+router.get("/:playerId/games/:gameId", async (req, res) => {
     let playerId = req.params.playerId;
     let gameId = req.params.gameId;
     try{
