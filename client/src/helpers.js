@@ -93,7 +93,6 @@ const finish_h2h = (h2h) => {
 
 const do_elo = (h2h) => {
     for (let player in h2h) {
-        console.log(h2h[player])
         h2h[player].elo = 1500
     }
     function Probability(rating1, rating2) {

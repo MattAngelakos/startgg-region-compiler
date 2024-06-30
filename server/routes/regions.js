@@ -190,8 +190,9 @@ router.post("/:regionId/seasons/:seasonName/stats/head-to-head", async (req, res
     }
     try {
         let unfinished_h2h = await do_h2h(regionId, seasonName, tournaments)
-        let h2h = do_elo(unfinished_h2h)
-        h2h = do_glicko2(unfinished_h2h)
+        let h2h = _.cloneDeep(unfinished_h2h);
+        h2h = do_elo(h2h)
+        h2h = do_glicko2(h2h)
         h2h = finish_h2h(h2h)
         res.status(200).json({
             h2h: h2h,

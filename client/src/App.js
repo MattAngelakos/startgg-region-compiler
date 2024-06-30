@@ -391,17 +391,17 @@ const App = () => {
   h2h = do_glicko2(h2h)
   h2h = finish_h2h(h2h)
   return (
-    // <Router>
-    //   <Routes>
-    //     <Route path="/regions" element={<LeaguePage />} />
-    //     <Route path="/regions/:regionId" element={<LeagueDetail />} />
-    //     <Route path="/regions/:regionId/seasons/:seasonName" element={<SeasonPage />} />
-    //     <Route path="/regions/:regionId/seasons/:seasonName/players" element={<PlayerSearchSeason/>} />
-    //     <Route path="/regions/:regionId/seasons/:seasonName/tournaments" element={<TournamentSearchSeason/>} />
-    //     <Route path="/regions/:regionId/seasons/:seasonName/h2h-chart" element={<HeadToHeadWrapper/>} />
-    //   </Routes>
-    // </Router>
-    <PlayerFilter originalObject={h2h} originalH2H={unfinished_h2h}/>
+    <Router>
+      <Routes>
+        <Route path="/regions" element={<LeaguePage />} />
+        <Route path="/regions/:regionId" element={<LeagueDetail />} />
+        <Route path="/regions/:regionId/seasons/:seasonName" element={<SeasonPage />} />
+        <Route path="/regions/:regionId/seasons/:seasonName/players" element={<PlayerSearchSeason/>} />
+        <Route path="/regions/:regionId/seasons/:seasonName/tournaments" element={<TournamentSearchSeason/>} />
+        <Route path="/regions/:regionId/seasons/:seasonName/h2h-chart" element={<HeadToHeadWrapper/>} />
+      </Routes>
+    </Router>
+    // <PlayerFilter originalObject={h2h} originalH2H={unfinished_h2h}/>
   );
 };
 

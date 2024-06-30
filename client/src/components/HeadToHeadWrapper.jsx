@@ -63,7 +63,7 @@ const HeadToHeadWrapper = () => {
         }
     };
 
-    if (!head2head || tournaments.length === 0 || !originalH2H) {
+    if (!head2head || tournaments.length === 0) {
         return <div>Loading...</div>;
     }
 
