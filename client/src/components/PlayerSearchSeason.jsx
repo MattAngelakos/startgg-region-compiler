@@ -127,7 +127,7 @@ const PlayerSearchSeason = () => {
     }
     return (
         <div className="app">
-            <Header />
+            <Header link={`/regions/${regionId}/seasons/${seasonName}`}linkname={seasonName}/>
             <main>
                 <h1>League Detail for {regionId}</h1>
                 <form onSubmit={handleSubmit}>

@@ -8,6 +8,7 @@ import LinkButton from './LinkButton';
 const SeasonPage = () => {
     const { regionId, seasonName } = useParams();
     const [season, setSeason] = useState(null);
+    const [regions, setRegion] = useState(null)
     useEffect(() => {
         const fetchRegionData = async () => {
             try {
@@ -71,6 +72,7 @@ const SeasonPage = () => {
                 } catch (error) {
                     console.error(`Error fetching players for season ${season.seasonName}:`, error);
                 }
+                setRegion(region)
                 setSeason(season);
             } catch (error) {
                 console.error('Error fetching season data:', error);
@@ -86,12 +88,12 @@ const SeasonPage = () => {
         }),
         [regionId]
     );
-    if (!season) {
+    if (!season || !regions) {
         return <div>Loading...</div>;
     }
     return (
         <div className="app">
-            <Header />
+            <Header link={`/regions/${regionId}`}linkname={regions.regionName}/>
             <main>
                 <h1>League Detail for {regionId}</h1>
                 <Results items={[{ ...season, _id: season.seasonName }]} Component={SeasonItem} propMapper={seasonPropMapper} />

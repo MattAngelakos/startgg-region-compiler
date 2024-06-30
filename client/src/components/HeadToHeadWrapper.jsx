@@ -69,7 +69,7 @@ const HeadToHeadWrapper = () => {
 
     return (
         <div className="app">
-            <Header />
+            <Header link={`/regions/${regionId}/seasons/${seasonName}`}linkname={seasonName}/>
             <main>
                 <h1>League Head2Head Detail for {regionId}</h1>
                 <TournamentFilter

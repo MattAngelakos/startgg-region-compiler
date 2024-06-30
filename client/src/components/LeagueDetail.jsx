@@ -132,7 +132,7 @@ const LeagueDetail = () => {
     }
     return (
         <div className="app">
-            <Header />
+            <Header link={`/regions`}linkname={'Region'}/>
             <main>
                 <form onSubmit={handleSubmit}>
                     <SearchBar query={playersQuery} setQuery={setPlayersQuery} searchWord="Players" />
