@@ -1,5 +1,3 @@
-import express from "express";
-
 import baseRouter from "./base.js"
 import usersRouter from "./users.js";
 import regionRouter from "./regions.js";

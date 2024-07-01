@@ -5,6 +5,7 @@ import { addPlayers, createSeason } from './data/seasons.js';
 import { createUser } from './data/accounts.js';
 import { do_h2h, filters, finish_h2h, getEventResultsByRegion, playerEligible, playerFilter, searchForPlayer, seasonFilter, setsRequest, sortOpponents, sortTournaments, tournamentFilter } from './data/playerData.js';
 import { getMainTournament } from './data/tournaments.js';
+import { createGame } from './data/games.js';
 const db = await dbConnection();
 // await db.dropDatabase();
 // let user
@@ -188,7 +189,14 @@ try{
 }catch (e) {
     console.log(e);
 }
-
+let game
+try{
+    game = await createGame(1386)
+    console.log(game)
+}
+catch (e) {
+    console.log(e);
+}
 // let nyc
 // try {
 //     nyc = await createRegion("NYC", 1386, false, 16, user._id.toString());

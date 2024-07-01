@@ -17,3 +17,4 @@ export const regions = getCollectionFn('regions');
 export const players = getCollectionFn('players');
 export const tournaments = getCollectionFn('tournaments');
 export const users = getCollectionFn('users');
+export const games = getCollectionFn('games');

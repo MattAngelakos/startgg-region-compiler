@@ -9,6 +9,7 @@ const createPlayer = async (playerId, opponentName) => {
     numCheck(playerId, "playerId")
     intCheck(playerId, "playerId")
     let gamerTag
+    let pfp = "N/A"
     if(opponentName){
         gamerTag = stringCheck(opponentName, "gamerTag")
         atLeast(gamerTag, 1, "gamerTag")
@@ -18,15 +19,27 @@ const createPlayer = async (playerId, opponentName) => {
         query Name($id: ID!) {
             player(id: $id) {
                 gamerTag
+                user{
+                    images{
+                        type
+                        url
+                    }
+                }
             }
         }
         `
         const data = await doRequest(query, playerId, 0, 0, 0, 0)
         gamerTag = data.data.player.gamerTag
+        for(const image of data.data.player.user.images){
+            if(image.type === 'profile'){
+                pfp = image.url
+            }
+        }
     }
     let newPlayer = {
         _id: playerId,
         gamerTag: gamerTag,
+        pfp: pfp,
         games: []
     }
     const playerCollection = await players()

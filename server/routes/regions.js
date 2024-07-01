@@ -199,7 +199,6 @@ router.post("/:regionId/seasons/:seasonName/stats/head-to-head", async (req, res
             unfinished_h2h: unfinished_h2h
         });
     } catch (error) {
-
         console.log(error)
         res.status(500).json({
             error: error,

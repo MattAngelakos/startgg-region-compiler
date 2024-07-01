@@ -12,9 +12,15 @@ const createNewTournament = async (eventId, placement, playerId) => {
           type
           name
           tournament {
-            name
-            addrState
             id
+            name
+            city
+            addrState
+            countryCode
+            images{
+                type
+                url
+            }
           }
           isOnline
           videogame{
@@ -26,11 +32,21 @@ const createNewTournament = async (eventId, placement, playerId) => {
     const response = await doRequest(query, eventId, 0, 0, 0, 0)
     const data = response.data
     let event = data.event
+    let banner = "N/A"
+    let pfp = "N/A"
+    for (const image of event.tournament.images){
+        if(image.type === 'banner'){
+            pfp = image.url
+        }
+        else if(image.type === 'profile'){
+            banner = image.url
+        }
+    }
     let tournament
     try {
         tournament = await getMainTournament(event.tournament.id)
     } catch (e) {
-        tournament = await createTournament(event.tournament.id, event.tournament.name, event.tournament.addrState)
+        tournament = await createTournament(event.tournament.id, event.tournament.name, event.tournament.addrState, event.tournament.city, event.tournament.countryCode, pfp, banner)
     }
     let foundEvent
     try {

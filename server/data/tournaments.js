@@ -2,20 +2,35 @@ import {tournaments} from '../config/mongoCollections.js'
 import {ObjectId} from 'mongodb'
 import { arrayCheck, atLeast, booleanCheck, intCheck, numCheck, objectCheck, stringCheck } from '../helpers.js'
 
-const createTournament = async (id, tournamentName, addrState) => {
+const createTournament = async (id, tournamentName, addrState, city, country, pfp, banner) => {
     numCheck(id, "tournamentId")
     intCheck(id, "tournamentId")
     tournamentName = stringCheck(tournamentName, "tournamentName")
     if(addrState === null){
         addrState = "N/A"
     }
+    if(city === null){
+        city = "N/A"
+    }
+    if(country === null){
+        country = "N/A"
+    }
     addrState = stringCheck(addrState, "addrState")
     atLeast(addrState, 1, "addrState")
+    city = stringCheck(city, "city")
+    atLeast(city, 1, "city")
+    country = stringCheck(country, "country")
+    atLeast(country, 1, "country")
+    //add url check
     const tournamentCollection = await tournaments()
     let newTourney = {
         _id: id,
         tournamentName: tournamentName,
+        city: city,
         addrState: addrState,
+        country: country,
+        pfp: pfp,
+        banner: banner,
         events: []
     }
     const insertInfo = await tournamentCollection.insertOne(newTourney)

@@ -143,10 +143,10 @@ const TournamentSearchSeason = () => {
                 brackets = tournaments.sort((a, b) => a.event.entrants - b.event.entrants);
                 break;
             case '-startAt':
-                brackets = tournaments.sort((a, b) => b.event.startAt - a.event.startAt);
+                brackets = tournaments.sort((a, b) => a.event.startAt - b.event.startAt);
                 break;
             case 'startAt':
-                brackets = tournaments.sort((a, b) => a.event.startAt - b.event.startAt);
+                brackets = tournaments.sort((a, b) => b.event.startAt - a.event.startAt);
                 break;
             default:
                 break;
