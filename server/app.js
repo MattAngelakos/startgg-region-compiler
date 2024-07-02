@@ -54,70 +54,62 @@ catch (e){
     console.log(e);
 }
 
-let tweek
-try {
-    tweek = await createPlayer(15768)
-    console.log(tweek);
-}
-catch (e){
-    console.log(e);
-}
-try {
-    smashUlt = await createGameForPlayer(15768, 1386)
-    console.log(smashUlt);
-}
-catch (e){
-    console.log(e);
-}
-try {
-    console.log(await setsRequest(15768, 1386))
-}
-catch (e){
-    console.log(e);
-}
-await new Promise(r => setTimeout(r, 30000));
-let marvin
-try {
-    marvin = await createPlayer(1189720)
-    console.log(marvin);
-}
-catch (e){
-    console.log(e);
-}
-try {
-    smashUlt = await createGameForPlayer(1189720, 1386)
-    console.log(smashUlt);
-}
-catch (e){
-    console.log(e);
-}
-try {
-    console.log(await setsRequest(1189720, 1386))
-}
-catch (e){
-    console.log(e);
-}
+// let tweek
+// try {
+//     tweek = await createPlayer(15768)
+//     console.log(tweek);
+// }
+// catch (e){
+//     console.log(e);
+// }
+// try{
+//     syrup = await getPlayer(parseInt(syrup._id))
+// }catch(e){
+//     console.log(e)
+// }
+// let filtered2 
+// try{
+//     filtered2 = await filters(syrup, 1386, "dateRange", 100, 0, 2024, 4, 1, 2024, 7, 1)
+//     console.log(filtered2.games[0].tournaments)
+// }catch (e) {
+//     console.log(e);
+// }
+// let goml
+// try{
+//     goml = await getEventResultsByRegion(nj._id, "q2_2024", 570293, 948374)
+//     console.log(goml[0].matches)
+// }catch (e) {
+//     console.log(e);
+// }
+// let game
+// try{
+//     game = await createGame(1386)
+//     console.log(game)
+// }
+// catch (e) {
+//     console.log(e);
+// }
 
 try{
-    await addPlayers('666f1ddf2c269822c2f0b19b', "q2_2024", [1216463, 15768, 1189720])
+    await addPlayers(nj._id.toString(), "q2_2024", [1216463, 15768, 1189720])
 }catch(e){
     console.log(e)
 }
 
-let h2h
-try{
-    h2h = await do_h2h('666d0683e52f0853c03cdbb6', 'q2_2024')
-    console.log(h2h)
-}catch(e){
-    console.log(e)
-}
-let finished_h2h
-try{
-    finished_h2h = await finish_h2h(h2h)
-    console.log(finished_h2h)
-}catch(e){
-    console.log(e)
-}
+// let h2h
+// try{
+//     h2h = await do_h2h('666d0683e52f0853c03cdbb6', 'q2_2024')
+//     console.log(h2h)
+// }catch(e){
+//     console.log(e)
+// }
+// let finished_h2h
+// try{
+//     finished_h2h = await finish_h2h(h2h)
+//     console.log(finished_h2h)
+// }catch(e){
+//     console.log(e)
+// }
 
 // let nj
 // try{
@@ -189,14 +181,15 @@ try{
 // }catch (e) {
 //     console.log(e);
 // }
-// let game
-// try{
-//     game = await createGame(1386)
-//     console.log(game)
-// }
-// catch (e) {
-//     console.log(e);
-// }
+let game
+try{
+    game = await createGame(1386)
+    console.log(game)
+}
+catch (e) {
+    console.log(e);
+}
+
 // let nyc
 // try {
 //     nyc = await createRegion("NYC", 1386, false, 16, user._id.toString());
