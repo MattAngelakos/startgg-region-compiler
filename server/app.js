@@ -7,52 +7,52 @@ import { do_h2h, filters, finish_h2h, getEventResultsByRegion, playerEligible, p
 import { getMainTournament } from './data/tournaments.js';
 import { createGame } from './data/games.js';
 const db = await dbConnection();
-// await db.dropDatabase();
-// let user
-// try{
-//     user = await createUser("Tabby", "Password1!", "mangelak@stevens.edu", "Admin");
-// }catch (e) {
-//     console.log(e);
-// }
-// let nj
-// try {
-//     nj = await createRegion("NJ", 1386, false, 16, 4, 3, "NJ", 1, user._id.toString());
-//     console.log(nj);
-// } catch (e) {
-//     console.log(e);
-// }
+await db.dropDatabase();
+let user
+try{
+    user = await createUser("Tabby", "Password1!", "mangelak@stevens.edu", "Admin");
+}catch (e) {
+    console.log(e);
+}
+let nj
+try {
+    nj = await createRegion("NJ", 1386, false, 16, 4, 3, "NJ", 1, user._id.toString());
+    console.log(nj);
+} catch (e) {
+    console.log(e);
+}
 
-// let q2_2024
-// try {
-//     q2_2024 = await createSeason(nj._id.toString(), "q2_2024", 2024, 4, 1, 2024, 7, 1)
-//     console.log(q2_2024);
-// }
-// catch (e){
-//     console.log(e);
-// }
+let q2_2024
+try {
+    q2_2024 = await createSeason(nj._id.toString(), "q2_2024", 2024, 4, 1, 2024, 7, 1)
+    console.log(q2_2024);
+}
+catch (e){
+    console.log(e);
+}
 
-// let syrup 
-// try {
-//     syrup = await createPlayer(1216463)
-//     console.log(syrup);
-// }
-// catch (e){
-//     console.log(e);
-// }
-// let smashUlt
-// try {
-//     smashUlt = await createGameForPlayer(1216463, 1386)
-//     console.log(smashUlt);
-// }
-// catch (e){
-//     console.log(e);
-// }
-// try {
-//     console.log(await setsRequest(1216463, 1386))
-// }
-// catch (e){
-//     console.log(e);
-// }
+let syrup 
+try {
+    syrup = await createPlayer(1216463)
+    console.log(syrup);
+}
+catch (e){
+    console.log(e);
+}
+let smashUlt
+try {
+    smashUlt = await createGameForPlayer(1216463, 1386)
+    console.log(smashUlt);
+}
+catch (e){
+    console.log(e);
+}
+try {
+    console.log(await setsRequest(1216463, 1386))
+}
+catch (e){
+    console.log(e);
+}
 
 // let tweek
 // try {
@@ -98,11 +98,11 @@ const db = await dbConnection();
 //     console.log(e);
 // }
 
-// try{
-//     await addPlayers('666f1ddf2c269822c2f0b19b', "q2_2024", [1216463, 15768, 1189720])
-// }catch(e){
-//     console.log(e)
-// }
+try{
+    await addPlayers(nj._id.toString(), "q2_2024", [1216463, 15768, 1189720])
+}catch(e){
+    console.log(e)
+}
 
 // let h2h
 // try{
@@ -119,76 +119,76 @@ const db = await dbConnection();
 //     console.log(e)
 // }
 
-let nj
-try{
-    nj = await getRegion('666f1ddf2c269822c2f0b19b')
-    console.log(nj)
-}catch(e){
-    console.log(e)
-}
-let syrup
-try{
-    syrup = await seasonFilter(nj._id.toString(), 'q2_2024', 1216463)
-    console.log(syrup.games[0].tournaments)
-}catch (e) {
-    console.log(e);
-}
-try{
-    console.log(await playerEligible(nj, 'q2_2024', 1216463))
-}catch (e) {
-    console.log(e);
-}
+// let nj
+// try{
+//     nj = await getRegion('666f1ddf2c269822c2f0b19b')
+//     console.log(nj)
+// }catch(e){
+//     console.log(e)
+// }
+// let syrup
+// try{
+//     syrup = await seasonFilter(nj._id.toString(), 'q2_2024', 1216463)
+//     console.log(syrup.games[0].tournaments)
+// }catch (e) {
+//     console.log(e);
+// }
+// try{
+//     console.log(await playerEligible(nj, 'q2_2024', 1216463))
+// }catch (e) {
+//     console.log(e);
+// }
 
-try{
-    console.log(await playerFilter(nj._id.toString(), 'q2_2024'))
-}catch (e) {
-    console.log(e);
-}
-try{
-    console.log(await searchForPlayer("Jo"))
-}catch (e) {
-    console.log(e);
-}
-let filtered
-try{
-    filtered = await tournamentFilter(1216463, 1386, [948374, 1133759])
-    console.log(filtered.games[0].tournaments)
-}catch (e) {
-    console.log(e);
-}
-let sorted
-try{
-    sorted = await sortTournaments(syrup, 1386, "lowestPlacement")
-    console.log(sorted.games[0].tournaments)
-}catch (e) {
-    console.log(e);
-}
-let sorted2
-try{
-    sorted2 = await sortOpponents(syrup, 1386, "highestWinrate")
-    console.log(sorted2.games[0].opponents)
-}catch (e) {
-    console.log(e);
-}
-try{
-    syrup = await getPlayer(parseInt(syrup._id))
-}catch(e){
-    console.log(e)
-}
-let filtered2 
-try{
-    filtered2 = await filters(syrup, 1386, "dateRange", 100, 0, 2024, 4, 1, 2024, 7, 1)
-    console.log(filtered2.games[0].tournaments)
-}catch (e) {
-    console.log(e);
-}
-let goml
-try{
-    goml = await getEventResultsByRegion(nj._id, "q2_2024", 570293, 948374)
-    console.log(goml[0].matches)
-}catch (e) {
-    console.log(e);
-}
+// try{
+//     console.log(await playerFilter(nj._id.toString(), 'q2_2024'))
+// }catch (e) {
+//     console.log(e);
+// }
+// try{
+//     console.log(await searchForPlayer("Jo"))
+// }catch (e) {
+//     console.log(e);
+// }
+// let filtered
+// try{
+//     filtered = await tournamentFilter(1216463, 1386, [948374, 1133759])
+//     console.log(filtered.games[0].tournaments)
+// }catch (e) {
+//     console.log(e);
+// }
+// let sorted
+// try{
+//     sorted = await sortTournaments(syrup, 1386, "lowestPlacement")
+//     console.log(sorted.games[0].tournaments)
+// }catch (e) {
+//     console.log(e);
+// }
+// let sorted2
+// try{
+//     sorted2 = await sortOpponents(syrup, 1386, "highestWinrate")
+//     console.log(sorted2.games[0].opponents)
+// }catch (e) {
+//     console.log(e);
+// }
+// try{
+//     syrup = await getPlayer(parseInt(syrup._id))
+// }catch(e){
+//     console.log(e)
+// }
+// let filtered2 
+// try{
+//     filtered2 = await filters(syrup, 1386, "dateRange", 100, 0, 2024, 4, 1, 2024, 7, 1)
+//     console.log(filtered2.games[0].tournaments)
+// }catch (e) {
+//     console.log(e);
+// }
+// let goml
+// try{
+//     goml = await getEventResultsByRegion(nj._id, "q2_2024", 570293, 948374)
+//     console.log(goml[0].matches)
+// }catch (e) {
+//     console.log(e);
+// }
 let game
 try{
     game = await createGame(1386)
@@ -197,6 +197,7 @@ try{
 catch (e) {
     console.log(e);
 }
+
 // let nyc
 // try {
 //     nyc = await createRegion("NYC", 1386, false, 16, user._id.toString());
