@@ -84,14 +84,13 @@ const PlayerGamePage = () => {
         fetchRegionData();
     }, [playerId, gameId]);
     const seasonTournamentMapper = (tournament) => ({
-        _id: tournament.tournament._id,
         tournament: tournament.tournament,
         event: tournament.event,
         placement: tournament.placement
     });
     const opponentMapper = (opponent) => ({
-        _id: opponent.opponentId,
-        opponent: opponent
+        opponent: opponent,
+        tournaments: tournaments
     });
     let filteredTournaments = useMemo(() => {
         if (!tournaments) return [];
@@ -131,7 +130,6 @@ const PlayerGamePage = () => {
     if (!player || !game || !filteredTournaments) {
         return <div>Loading...</div>;
     }
-    console.log(filteredTournaments)
     const startIndex = (currentPage - 1) * perPage;
     const endIndex = startIndex + perPage;
     let currentTournaments = filteredTournaments.slice(startIndex, endIndex);

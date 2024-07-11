@@ -1,19 +1,5 @@
 import React, { useState } from 'react';
-
-const calculateScore = (matches) => {
-    let wins = 0;
-    let losses = 0;
-
-    matches.forEach(match => {
-        if (match.type === 'win') {
-            wins += 1;
-        } else if (match.type === 'loss') {
-            losses += 1;
-        }
-    });
-
-    return { score: `${wins}-${losses}` };
-};
+import { calculateScore } from '../helpers.js'
 
 const MatchesList = ({ matches }) => {
     const { score } = calculateScore(matches);

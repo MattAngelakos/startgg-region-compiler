@@ -250,11 +250,27 @@ const formatDate = (date) => {
     return `${month}/${day}/${year}`;
   };
 
+  const calculateScore = (matches) => {
+    let wins = 0;
+    let losses = 0;
+
+    matches.forEach(match => {
+        if (match.type === 'win') {
+            wins += 1;
+        } else if (match.type === 'loss') {
+            losses += 1;
+        }
+    });
+
+    return { score: `${wins}-${losses}` };
+};
+
 export{
     sortLev,
     finish_h2h,
     do_elo,
     do_glicko2,
     formatDate,
-    sortLev2
+    sortLev2,
+    calculateScore
 };
