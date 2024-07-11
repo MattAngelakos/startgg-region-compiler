@@ -7,6 +7,7 @@ import TournamentItem from './TournamentItem';
 import { compareWinrate, sortLev2 } from '../helpers';
 import OpponentItem from './OpponentItem';
 
+
 const PlayerGamePage = () => {
     const { playerId, gameId } = useParams()
     const [player, setPlayer] = useState(null)
@@ -92,8 +93,7 @@ const PlayerGamePage = () => {
         placement: tournament.placement
     });
     const opponentMapper = (opponent) => ({
-        opponent: opponent,
-        tournaments: tournaments
+        opponent: opponent
     });
     let filteredTournaments = useMemo(() => {
         if (!tournaments) return [];
@@ -129,22 +129,37 @@ const PlayerGamePage = () => {
     }, [tournaments, filterTournamentsQuery, sortKey]);
     let filteredOpponents = useMemo(() => {
         if (!game) return [];
-        let opponents
+        let opponents = game.opponents
+        for (let opponent of game.opponents) {
+            const addTournamentNames = (tournaments, brackets) => {
+                return tournaments.map(tournament => {
+                    const bracket = brackets.find(bracket =>
+                        bracket.tournament._id === tournament.tournamentId &&
+                        bracket.event.eventId === tournament.eventId
+                    );
+                    return {
+                        ...tournament,
+                        tournamentName: bracket ? `${bracket.tournament.tournamentName}: ${bracket.event.eventName}` : 'Unknown Tournament'
+                    };
+                });
+            };
+            opponent.tournaments = addTournamentNames(opponent.tournaments, tournaments)
+        }
         switch (sortKey2) {
             case '-tournamentName':
-                opponents = (game.opponents).sort((a, b) => b.opponentName.localeCompare(a.opponentName));
+                opponents = opponents.sort((a, b) => b.opponentName.localeCompare(a.opponentName));
                 break;
             case 'tournamentName':
-                opponents = (game.opponents).sort((a, b) => a.opponentName.localeCompare(b.opponentName));
+                opponents = opponents.sort((a, b) => a.opponentName.localeCompare(b.opponentName));
                 break;
             case 'entrants':
-                opponents = (game.opponents).sort((a, b) => b.tournaments.length - a.tournaments.length);
+                opponents = opponents.sort((a, b) => b.tournaments.length - a.tournaments.length);
                 break;
             case '-entrants':
-                opponents = (game.opponents).sort((a, b) => a.tournaments.length - b.tournaments.length);
+                opponents = opponents.sort((a, b) => a.tournaments.length - b.tournaments.length);
                 break;
             case '-startAt':
-                opponents = (game.opponents).sort((a, b) =>
+                opponents = opponents.sort((a, b) =>
                 compareWinrate(b, a))
                 break;
             case 'startAt':
@@ -155,7 +170,7 @@ const PlayerGamePage = () => {
                 break;
         }
         return opponents
-    }, [game, sortKey2]);
+    }, [game, tournaments, sortKey2]);
     let filteredTournaments2 = filteredTournaments.filter(tournament =>
         tournament.tournament.tournamentName.toLowerCase().includes(searchQuery.toLowerCase())
     );

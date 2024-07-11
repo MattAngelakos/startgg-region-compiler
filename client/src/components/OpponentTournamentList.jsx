@@ -1,23 +1,9 @@
 import React, { useState } from 'react';
 import MatchesList from './MatchesList';
 
-const OpponentTournamentList = ({ tournaments, brackets }) => {
+const OpponentTournamentList = ({ tournaments }) => {
     const [openMatches, setOpenMatches] = useState(tournaments.map(() => false));
     const [allOpen, setAllOpen] = useState(false);
-    const addTournamentNames = (tournaments, brackets) => {
-        return tournaments.map(tournament => {
-            const bracket = brackets.find(bracket =>
-                bracket.tournament._id === tournament.tournamentId &&
-                bracket.event.eventId === tournament.eventId
-            );
-            return {
-                ...tournament,
-                tournamentName: bracket ? `${bracket.tournament.tournamentName}: ${bracket.event.eventName}` : 'Unknown Tournament'
-            };
-        });
-    };
-
-    const enrichedTournaments = addTournamentNames(tournaments, brackets);
 
     const toggleAllMatches = () => {
         const newAllOpen = !allOpen;
@@ -41,7 +27,7 @@ const OpponentTournamentList = ({ tournaments, brackets }) => {
             <button onClick={toggleAllMatches}>
                 {allOpen ? 'Collapse All' : 'Expand All'}
             </button>
-            {enrichedTournaments.map((tournament, index) => (
+            {tournaments.map((tournament, index) => (
                 <div key={index}>
                     <h3 onClick={() => toggleMatchDetails(index)}>
                         {tournament.tournamentName} ({tournament.type === 'win' ? 'W' : 'L'})
