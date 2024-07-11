@@ -48,9 +48,8 @@ const PlayerGamePage = () => {
                 }
                 const data = await response.json();
                 setPlayer(data.player);
-                for(const game of data.player.games){
-                    if(game.gameId === parseInt(gameId)){
-                        setGame(game)
+                for (const game of data.player.games) {
+                    if (game.gameId === parseInt(gameId)) {
                         for (let tournament of game.tournaments) {
                             try {
                                 const response = await fetch(`/tournaments/${tournament.tournamentId}`);
@@ -77,6 +76,24 @@ const PlayerGamePage = () => {
                                 console.error(`Error fetching ${tournament.tournamentId}:`, error);
                             }
                         }
+                        for (let opponent of game.opponents) {
+                            opponent._id = opponent.opponentId
+                            const addTournamentNames = (tournaments, brackets) => {
+                                return tournaments.map(tournament => {
+                                    const bracket = brackets.find(bracket =>
+                                        bracket.tournament._id === tournament.tournamentId &&
+                                        bracket.event.eventId === tournament.eventId
+                                    );
+                                    return {
+                                        ...tournament,
+                                        tournamentName: bracket ? `${bracket.tournament.tournamentName}: ${bracket.event.eventName}` : 'Unknown Tournament',
+                                        startAt: bracket ? bracket.event.startAt : -1
+                                    };
+                                });
+                            };
+                            opponent.tournaments = addTournamentNames(opponent.tournaments, brackets)
+                        }
+                        setGame(game)
                         break
                     }
                 }
@@ -120,30 +137,25 @@ const PlayerGamePage = () => {
             default:
                 break;
         }
-        if(filterTournamentsQuery !== ''){
+        if (filterTournamentsQuery !== '') {
             return sortLev2(brackets, filterTournamentsQuery, 'tournamentName');
         }
-        else{
+        else {
             return brackets
         }
     }, [tournaments, filterTournamentsQuery, sortKey]);
     let filteredOpponents = useMemo(() => {
         if (!game) return [];
         let opponents = game.opponents
-        for (let opponent of game.opponents) {
-            const addTournamentNames = (tournaments, brackets) => {
-                return tournaments.map(tournament => {
-                    const bracket = brackets.find(bracket =>
-                        bracket.tournament._id === tournament.tournamentId &&
-                        bracket.event.eventId === tournament.eventId
-                    );
-                    return {
-                        ...tournament,
-                        tournamentName: bracket ? `${bracket.tournament.tournamentName}: ${bracket.event.eventName}` : 'Unknown Tournament'
-                    };
-                });
-            };
-            opponent.tournaments = addTournamentNames(opponent.tournaments, tournaments)
+        if (sortKey2 === "recent" || sortKey2 === "-recent") {
+            for (let opponent of opponents) {
+                opponent['mostRecent'] = -1
+                    for (const match of opponent.tournaments) {
+                        if (opponent.mostRecent < match.startAt) {
+                            opponent.mostRecent = match.startAt
+                        }
+                    }
+            }
         }
         switch (sortKey2) {
             case '-tournamentName':
@@ -160,17 +172,23 @@ const PlayerGamePage = () => {
                 break;
             case '-startAt':
                 opponents = opponents.sort((a, b) =>
-                compareWinrate(b, a))
+                    compareWinrate(b, a))
                 break;
             case 'startAt':
                 opponents = (game.opponents).sort((a, b) =>
-                compareWinrate(a, b))
+                    compareWinrate(a, b))
+                break;
+            case 'recent':
+                opponents = opponents.sort((a, b) => a.mostRecent - b.mostRecent);
+                break;
+            case '-recent':
+                opponents = opponents.sort((a, b) => b.mostRecent - a.mostRecent);
                 break;
             default:
                 break;
         }
         return opponents
-    }, [game, tournaments, sortKey2]);
+    }, [game, sortKey2]);
     let filteredTournaments2 = filteredTournaments.filter(tournament =>
         tournament.tournament.tournamentName.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -185,7 +203,7 @@ const PlayerGamePage = () => {
     let currentOpponents = filteredOpponents.slice(startIndex2, endIndex2);
     return (
         <div className="app">
-            <Header link={`/players/${playerId}`}linkname={'Players'}/>
+            <Header link={`/players/${playerId}`} linkname={'Players'} />
             <main>
                 {player.gamerTag}
                 <div className="sort-options">
@@ -243,6 +261,8 @@ const PlayerGamePage = () => {
                         <option value="-entrants">Least Played</option>
                         <option value="-startAt">Highest Winrate</option>
                         <option value="startAt">Lowest Winrate</option>
+                        <option value="-recent">Most Recent</option>
+                        <option value="recent">Least Recent</option>
                     </select>
                 </div>
                 <Results items={currentOpponents} Component={OpponentItem} propMapper={opponentMapper} />

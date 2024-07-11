@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import MatchesList from './MatchesList';
+import { formatDate } from '../helpers';
 
 const OpponentTournamentList = ({ tournaments }) => {
     const [openMatches, setOpenMatches] = useState(tournaments.map(() => false));
@@ -21,7 +22,6 @@ const OpponentTournamentList = ({ tournaments }) => {
             setAllOpen(true);
         }
     };
-
     return (
         <div>
             <button onClick={toggleAllMatches}>
@@ -32,6 +32,7 @@ const OpponentTournamentList = ({ tournaments }) => {
                     <h3 onClick={() => toggleMatchDetails(index)}>
                         {tournament.tournamentName} ({tournament.type === 'win' ? 'W' : 'L'})
                     </h3>
+                    <h4> {formatDate(new Date(tournament.startAt * 1000))} </h4>
                     {openMatches[index] && (
                         <div>
                             <MatchesList matches={tournament.matches} />
