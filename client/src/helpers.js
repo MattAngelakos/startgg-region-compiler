@@ -265,6 +265,26 @@ const formatDate = (date) => {
     return { score: `${wins}-${losses}` };
 };
 
+const compareWinrate = (opponent1, opponent2) => {
+    let wins1 = 0
+    let wins2 = 0
+    for (const match of opponent1.tournaments) {
+        if (match.type === "win") {
+            wins1 = wins1 + 1
+        }
+    }
+    for (const match of opponent2.tournaments) {
+        if (match.type === "win") {
+            wins2 = wins2 + 1
+        }
+    }
+    let val = (wins1 / opponent1.tournaments.length) - (wins2 / opponent2.tournaments.length)
+    if (val === 0) {
+        val = opponent1.tournaments.length - opponent2.tournaments.length
+    }
+    return val
+}
+
 export{
     sortLev,
     finish_h2h,
@@ -272,5 +292,6 @@ export{
     do_glicko2,
     formatDate,
     sortLev2,
-    calculateScore
+    calculateScore,
+    compareWinrate
 };

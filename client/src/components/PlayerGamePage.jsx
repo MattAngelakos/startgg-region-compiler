@@ -4,7 +4,7 @@ import Header from './Header';
 import Results from './Results';
 import Pagination from './Pagination';
 import TournamentItem from './TournamentItem';
-import { sortLev2 } from '../helpers';
+import { compareWinrate, sortLev2 } from '../helpers';
 import OpponentItem from './OpponentItem';
 
 const PlayerGamePage = () => {
@@ -18,9 +18,12 @@ const PlayerGamePage = () => {
     const [dropdownVisible, setDropdownVisible] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [perPage, setPerPage] = useState(10);
+    const [currentPage2, setCurrentPage2] = useState(1);
+    const [perPage2, setPerPage2] = useState(10);
     const navigate = useNavigate();
     const location = useLocation();
     const [sortKey, setSortKey] = useState('tournamentName');
+    const [sortKey2, setSortKey2] = useState('tournamentName');
     const handleSubmit = (e) => {
         e.preventDefault();
         setFilterTournamentsQuery(searchQuery);
@@ -124,6 +127,35 @@ const PlayerGamePage = () => {
             return brackets
         }
     }, [tournaments, filterTournamentsQuery, sortKey]);
+    let filteredOpponents = useMemo(() => {
+        if (!game) return [];
+        let opponents
+        switch (sortKey2) {
+            case '-tournamentName':
+                opponents = (game.opponents).sort((a, b) => b.opponentName.localeCompare(a.opponentName));
+                break;
+            case 'tournamentName':
+                opponents = (game.opponents).sort((a, b) => a.opponentName.localeCompare(b.opponentName));
+                break;
+            case 'entrants':
+                opponents = (game.opponents).sort((a, b) => b.tournaments.length - a.tournaments.length);
+                break;
+            case '-entrants':
+                opponents = (game.opponents).sort((a, b) => a.tournaments.length - b.tournaments.length);
+                break;
+            case '-startAt':
+                opponents = (game.opponents).sort((a, b) =>
+                compareWinrate(b, a))
+                break;
+            case 'startAt':
+                opponents = (game.opponents).sort((a, b) =>
+                compareWinrate(a, b))
+                break;
+            default:
+                break;
+        }
+        return opponents
+    }, [game, sortKey2]);
     let filteredTournaments2 = filteredTournaments.filter(tournament =>
         tournament.tournament.tournamentName.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -132,7 +164,10 @@ const PlayerGamePage = () => {
     }
     const startIndex = (currentPage - 1) * perPage;
     const endIndex = startIndex + perPage;
+    const startIndex2 = (currentPage2 - 1) * perPage2;
+    const endIndex2 = startIndex2 + perPage2;
     let currentTournaments = filteredTournaments.slice(startIndex, endIndex);
+    let currentOpponents = filteredOpponents.slice(startIndex2, endIndex2);
     return (
         <div className="app">
             <Header link={`/players/${playerId}`}linkname={'Players'}/>
@@ -184,7 +219,28 @@ const PlayerGamePage = () => {
                         setCurrentPage(1);
                     }}
                 />
-                <Results items={game.opponents} Component={OpponentItem} propMapper={opponentMapper} />
+                <div className="sort-options">
+                    <label>Sort by: </label>
+                    <select onChange={(e) => setSortKey2(e.target.value)} value={sortKey2}>
+                        <option value="tournamentName">Alphanumerical</option>
+                        <option value="-tournamentName">Reverse Alphanumerical</option>
+                        <option value="entrants">Most Played</option>
+                        <option value="-entrants">Least Played</option>
+                        <option value="-startAt">Highest Winrate</option>
+                        <option value="startAt">Lowest Winrate</option>
+                    </select>
+                </div>
+                <Results items={currentOpponents} Component={OpponentItem} propMapper={opponentMapper} />
+                <Pagination
+                    currentPage={currentPage2}
+                    totalItems={filteredOpponents.length}
+                    perPage={perPage2}
+                    onChangePage={setCurrentPage2}
+                    onChangePerPage={(newPerPage) => {
+                        setPerPage2(newPerPage);
+                        setCurrentPage2(1);
+                    }}
+                />
             </main>
         </div>
     );

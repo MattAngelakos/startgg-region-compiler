@@ -1,5 +1,5 @@
 import React from 'react';
-import OpponentTournanemtList from './OpponentTournamentList.jsx';
+import OpponentTournamentList from './OpponentTournamentList.jsx';
 import { calculateScore } from '../helpers.js';
 
 const OpponentItem = ({ opponent, tournaments }) => {
@@ -8,7 +8,7 @@ const OpponentItem = ({ opponent, tournaments }) => {
   return (
     <div>
         <h2>{opponent.opponentName} (Score: {score})</h2>
-        <OpponentTournanemtList tournaments={opponent.tournaments} brackets={tournaments} />
+        <OpponentTournamentList tournaments={opponent.tournaments} brackets={tournaments} />
     </div>
   );
 };

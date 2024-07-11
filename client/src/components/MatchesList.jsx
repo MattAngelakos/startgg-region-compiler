@@ -41,7 +41,6 @@ const MatchesList = ({ matches }) => {
                                 <p>Player Character: {match.playerChar}</p>
                                 <p>Opponent Character: {match.opponentChar}</p>
                                 <p>Stage: {match.stage}</p>
-                                <p>Type: {match.type}</p>
                             </div>
                         )}
                     </div>

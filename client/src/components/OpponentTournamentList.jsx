@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import MatchesList from './MatchesList';
 
 const OpponentTournamentList = ({ tournaments, brackets }) => {
@@ -48,8 +48,6 @@ const OpponentTournamentList = ({ tournaments, brackets }) => {
                     </h3>
                     {openMatches[index] && (
                         <div>
-                            <p>Tournament ID: {tournament.tournamentId}</p>
-                            <p>Event ID: {tournament.eventId}</p>
                             <MatchesList matches={tournament.matches} />
                         </div>
                     )}
