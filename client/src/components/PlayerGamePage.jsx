@@ -6,13 +6,15 @@ import Pagination from './Pagination';
 import TournamentItem from './TournamentItem';
 import { compareWinrate, sortLev2 } from '../helpers';
 import OpponentItem from './OpponentItem';
-
+import TournamentFilter from './TournamentFilter';
 
 const PlayerGamePage = () => {
-    const { playerId, gameId } = useParams()
-    const [player, setPlayer] = useState(null)
-    const [game, setGame] = useState(null)
+    const { playerId, gameId } = useParams();
+    const [player, setPlayer] = useState(null);
+    const [game, setGame] = useState(null);
     const [tournaments, setTournaments] = useState([]);
+    const [filteredTournaments, setFilteredTournaments] = useState([]);
+    const [filteredOpponents, setFilteredOpponents] = useState([]);
     const [tournamentsQuery] = useState('');
     const [filterTournamentsQuery, setFilterTournamentsQuery] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
@@ -25,23 +27,27 @@ const PlayerGamePage = () => {
     const location = useLocation();
     const [sortKey, setSortKey] = useState('tournamentName');
     const [sortKey2, setSortKey2] = useState('tournamentName');
+
     const handleSubmit = (e) => {
         e.preventDefault();
         setFilterTournamentsQuery(searchQuery);
         console.log('Search Tournaments:', tournamentsQuery);
     };
+
     const handleInputChange = (event) => {
         setSearchQuery(event.target.value);
         setDropdownVisible(true);
     };
+
     const handlePlayerClick = (eventId) => {
         setDropdownVisible(false);
         navigate(`${location.pathname}/${eventId}`);
     };
+
     useEffect(() => {
         const fetchRegionData = async () => {
             try {
-                let brackets = []
+                let brackets = [];
                 const response = await fetch(`/players/${playerId}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch region data');
@@ -63,11 +69,13 @@ const PlayerGamePage = () => {
                                         throw new Error(`Failed to fetch event`);
                                     }
                                     const eventData = await response.json();
+                                    const nameOfBracket = `${tournamentData.tournament.tournamentName}: ${eventData[tournamentData.tournament._id].eventName}`;
                                     brackets.push({
                                         _id: tournamentData.tournament._id,
                                         tournament: tournamentData.tournament,
                                         event: eventData[tournamentData.tournament._id],
-                                        placement: tournament.placement
+                                        placement: tournament.placement,
+                                        nameOfBracket: nameOfBracket
                                     });
                                 } catch (error) {
                                     console.error(`Error fetching ${tournament.eventId}:`, error);
@@ -77,7 +85,7 @@ const PlayerGamePage = () => {
                             }
                         }
                         for (let opponent of game.opponents) {
-                            opponent._id = opponent.opponentId
+                            opponent._id = opponent.opponentId;
                             const addTournamentNames = (tournaments, brackets) => {
                                 return tournaments.map(tournament => {
                                     const bracket = brackets.find(bracket =>
@@ -91,10 +99,11 @@ const PlayerGamePage = () => {
                                     };
                                 });
                             };
-                            opponent.tournaments = addTournamentNames(opponent.tournaments, brackets)
+                            opponent.tournaments = addTournamentNames(opponent.tournaments, brackets);
                         }
-                        setGame(game)
-                        break
+                        setGame(game);
+                        setFilteredOpponents(game.opponents);
+                        break;
                     }
                 }
                 setTournaments(brackets);
@@ -104,108 +113,137 @@ const PlayerGamePage = () => {
         };
         fetchRegionData();
     }, [playerId, gameId]);
+
+    useEffect(() => {
+        setFilteredTournaments(tournaments);
+    }, [tournaments]);
+
     const seasonTournamentMapper = (tournament) => ({
         tournament: tournament.tournament,
         event: tournament.event,
         placement: tournament.placement
     });
+
     const opponentMapper = (opponent) => ({
         opponent: opponent
     });
-    let filteredTournaments = useMemo(() => {
-        if (!tournaments) return [];
-        let brackets
+
+    let sortedTournaments = useMemo(() => {
+        if (!filteredTournaments) return [];
+        let brackets;
         switch (sortKey) {
             case '-tournamentName':
-                brackets = tournaments.sort((a, b) => b.tournament.tournamentName.localeCompare(a.tournament.tournamentName));
+                brackets = filteredTournaments.sort((a, b) => b.tournament.tournamentName.localeCompare(a.tournament.tournamentName));
                 break;
             case 'tournamentName':
-                brackets = tournaments.sort((a, b) => a.tournament.tournamentName.localeCompare(b.tournament.tournamentName));
+                brackets = filteredTournaments.sort((a, b) => a.tournament.tournamentName.localeCompare(b.tournament.tournamentName));
                 break;
             case 'entrants':
-                brackets = tournaments.sort((a, b) => b.event.entrants - a.event.entrants);
+                brackets = filteredTournaments.sort((a, b) => b.event.entrants - a.event.entrants);
                 break;
             case '-entrants':
-                brackets = tournaments.sort((a, b) => a.event.entrants - b.event.entrants);
+                brackets = filteredTournaments.sort((a, b) => a.event.entrants - b.event.entrants);
                 break;
             case '-startAt':
-                brackets = tournaments.sort((a, b) => a.event.startAt - b.event.startAt);
+                brackets = filteredTournaments.sort((a, b) => a.event.startAt - b.event.startAt);
                 break;
             case 'startAt':
-                brackets = tournaments.sort((a, b) => b.event.startAt - a.event.startAt);
+                brackets = filteredTournaments.sort((a, b) => b.event.startAt - a.event.startAt);
                 break;
             default:
                 break;
         }
         if (filterTournamentsQuery !== '') {
             return sortLev2(brackets, filterTournamentsQuery, 'tournamentName');
+        } else {
+            return brackets;
         }
-        else {
-            return brackets
-        }
-    }, [tournaments, filterTournamentsQuery, sortKey]);
-    let filteredOpponents = useMemo(() => {
+    }, [filteredTournaments, filterTournamentsQuery, sortKey]);
+
+    let sortedOpponents = useMemo(() => {
         if (!game) return [];
-        let opponents = game.opponents
+        if (!filteredOpponents) return [];
         if (sortKey2 === "recent" || sortKey2 === "-recent") {
-            for (let opponent of opponents) {
-                opponent['mostRecent'] = -1
-                    for (const match of opponent.tournaments) {
-                        if (opponent.mostRecent < match.startAt) {
-                            opponent.mostRecent = match.startAt
-                        }
+            for (let opponent of filteredOpponents) {
+                opponent['mostRecent'] = -1;
+                for (const match of opponent.tournaments) {
+                    if (opponent.mostRecent < match.startAt) {
+                        opponent.mostRecent = match.startAt;
                     }
+                }
             }
         }
+        let opponents
         switch (sortKey2) {
             case '-tournamentName':
-                opponents = opponents.sort((a, b) => b.opponentName.localeCompare(a.opponentName));
+                opponents = filteredOpponents.sort((a, b) => b.opponentName.localeCompare(a.opponentName));
                 break;
             case 'tournamentName':
-                opponents = opponents.sort((a, b) => a.opponentName.localeCompare(b.opponentName));
+                opponents = filteredOpponents.sort((a, b) => a.opponentName.localeCompare(b.opponentName));
                 break;
             case 'entrants':
-                opponents = opponents.sort((a, b) => b.tournaments.length - a.tournaments.length);
+                opponents = filteredOpponents.sort((a, b) => b.tournaments.length - a.tournaments.length);
                 break;
             case '-entrants':
-                opponents = opponents.sort((a, b) => a.tournaments.length - b.tournaments.length);
+                opponents = filteredOpponents.sort((a, b) => a.tournaments.length - b.tournaments.length);
                 break;
             case '-startAt':
-                opponents = opponents.sort((a, b) =>
-                    compareWinrate(b, a))
+                opponents = filteredOpponents.sort((a, b) => compareWinrate(b, a));
                 break;
             case 'startAt':
-                opponents = (game.opponents).sort((a, b) =>
-                    compareWinrate(a, b))
+                opponents = filteredOpponents.sort((a, b) => compareWinrate(a, b));
                 break;
             case 'recent':
-                opponents = opponents.sort((a, b) => a.mostRecent - b.mostRecent);
+                opponents = filteredOpponents.sort((a, b) => a.mostRecent - b.mostRecent);
                 break;
             case '-recent':
-                opponents = opponents.sort((a, b) => b.mostRecent - a.mostRecent);
+                opponents = filteredOpponents.sort((a, b) => b.mostRecent - a.mostRecent);
                 break;
             default:
                 break;
         }
-        return opponents
-    }, [game, sortKey2]);
-    let filteredTournaments2 = filteredTournaments.filter(tournament =>
+        return opponents;
+    }, [game, sortKey2, filteredOpponents]);
+
+    const handleFilter = (filteredBrackets) => {
+        const checkIds = filteredBrackets.map(item => item.event.eventId);
+        const filtered = tournaments.filter(item => !checkIds.includes(item.event.eventId))
+        let opponents = filteredOpponents
+        for (let i = opponents.length - 1; i >= 0; i--) {
+            let opponent = opponents[i];
+            opponent.tournaments = opponent.tournaments.filter(item => !checkIds.includes(item.eventId));
+            if (opponent.tournaments.length === 0) {
+                opponents.splice(i, 1);
+            }
+        }        
+        setFilteredTournaments(filtered);
+        setFilteredOpponents(opponents)
+    };
+
+    let filteredTournaments2 = sortedTournaments.filter(tournament =>
         tournament.tournament.tournamentName.toLowerCase().includes(searchQuery.toLowerCase())
     );
-    if (!player || !game || !filteredTournaments) {
+
+    if (!player || !game || !sortedTournaments) {
         return <div>Loading...</div>;
     }
+
     const startIndex = (currentPage - 1) * perPage;
     const endIndex = startIndex + perPage;
     const startIndex2 = (currentPage2 - 1) * perPage2;
     const endIndex2 = startIndex2 + perPage2;
-    let currentTournaments = filteredTournaments.slice(startIndex, endIndex);
-    let currentOpponents = filteredOpponents.slice(startIndex2, endIndex2);
+    let currentTournaments = sortedTournaments.slice(startIndex, endIndex);
+    let currentOpponents = sortedOpponents.slice(startIndex2, endIndex2);
+
     return (
         <div className="app">
             <Header link={`/players/${playerId}`} linkname={'Players'} />
             <main>
                 {player.gamerTag}
+                <TournamentFilter
+                    tournaments={tournaments}
+                    filterh2h={handleFilter}
+                />
                 <div className="sort-options">
                     <label>Sort by: </label>
                     <select onChange={(e) => setSortKey(e.target.value)} value={sortKey}>
@@ -244,7 +282,7 @@ const PlayerGamePage = () => {
                 <Results items={currentTournaments} Component={TournamentItem} propMapper={seasonTournamentMapper} />
                 <Pagination
                     currentPage={currentPage}
-                    totalItems={filteredTournaments.length}
+                    totalItems={sortedTournaments.length}
                     perPage={perPage}
                     onChangePage={setCurrentPage}
                     onChangePerPage={(newPerPage) => {
@@ -268,7 +306,7 @@ const PlayerGamePage = () => {
                 <Results items={currentOpponents} Component={OpponentItem} propMapper={opponentMapper} />
                 <Pagination
                     currentPage={currentPage2}
-                    totalItems={filteredOpponents.length}
+                    totalItems={sortedOpponents.length}
                     perPage={perPage2}
                     onChangePage={setCurrentPage2}
                     onChangePerPage={(newPerPage) => {
@@ -279,6 +317,6 @@ const PlayerGamePage = () => {
             </main>
         </div>
     );
-}
+};
 
 export default PlayerGamePage;
