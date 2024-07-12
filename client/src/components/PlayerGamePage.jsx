@@ -4,7 +4,7 @@ import Header from './Header';
 import Results from './Results';
 import Pagination from './Pagination';
 import TournamentItem from './TournamentItem';
-import { compareWinrate, sortLev2 } from '../helpers';
+import { compareWinrate, sortLev, sortLev2 } from '../helpers';
 import OpponentItem from './OpponentItem';
 import TournamentFilter from './TournamentFilter';
 
@@ -17,7 +17,9 @@ const PlayerGamePage = () => {
     const [filteredTournaments, setFilteredTournaments] = useState([]);
     const [filteredOpponents, setFilteredOpponents] = useState([]);
     const [filterTournamentsQuery, setFilterTournamentsQuery] = useState('');
+    const [filterOpponentsQuery, setFilterOpponentsQuery] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [searchQuery2, setSearchQuery2] = useState('');
     const [dropdownVisible, setDropdownVisible] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [perPage, setPerPage] = useState(5);
@@ -28,7 +30,7 @@ const PlayerGamePage = () => {
     const [sortKey, setSortKey] = useState('tournamentName');
     const [sortKey2, setSortKey2] = useState('tournamentName');
 
-    const fetchRegionData = async () => {
+    const fetchRegionData = async (playerId, gameId) => {
         try {
             const response = await fetch(`/players/${playerId}`);
             if (!response.ok) throw new Error('Failed to fetch player data');
@@ -137,14 +139,21 @@ const PlayerGamePage = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        setFilteredTournaments(tournaments.filter(tournament =>
-            tournament.tournament.tournamentName.toLowerCase().includes(searchQuery.toLowerCase())
-        ));
+        setFilterTournamentsQuery(searchQuery);
+    };
+
+    const handleSubmit2 = (e) => {
+        e.preventDefault();
+        setFilterOpponentsQuery(searchQuery2);
     };
 
     const handleInputChange = (event) => {
         setSearchQuery(event.target.value);
         setDropdownVisible(true);
+    };
+
+    const handleInputChange2 = (event) => {
+        setSearchQuery2(event.target.value);
     };
 
     const handlePlayerClick = (eventId) => {
@@ -153,7 +162,7 @@ const PlayerGamePage = () => {
     };
     
     useEffect(() => {
-        fetchRegionData();
+        fetchRegionData(playerId, gameId);
     }, [playerId, gameId]);
 
     useEffect(() => {
@@ -244,8 +253,11 @@ const PlayerGamePage = () => {
             default:
                 break;
         }
+        if (filterOpponentsQuery !== '') {
+            opponents = sortLev(opponents, filterOpponentsQuery, 'opponentName');
+        }
         return opponents;
-    }, [game, sortKey2, filteredOpponents]);
+    }, [game, sortKey2, filteredOpponents, filterOpponentsQuery]);
 
     const handleFilter = (filteredBrackets) => {
         const checkIds = filteredBrackets.map(item => item.event.eventId);
@@ -345,6 +357,15 @@ const PlayerGamePage = () => {
                         <option value="recent">Least Recent</option>
                     </select>
                 </div>
+                <form onSubmit={handleSubmit2}>
+                    <input
+                        type="text"
+                        placeholder="Search for a player"
+                        value={searchQuery2}
+                        onChange={handleInputChange2}
+                    />
+                    <button type="submit">Search</button>
+                </form>
                 <Results items={currentOpponents} Component={OpponentItem} propMapper={opponentMapper} />
                 <Pagination
                     currentPage={currentPage2}
