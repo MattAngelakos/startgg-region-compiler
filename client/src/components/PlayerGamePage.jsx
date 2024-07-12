@@ -12,26 +12,134 @@ const PlayerGamePage = () => {
     const { playerId, gameId } = useParams();
     const [player, setPlayer] = useState(null);
     const [game, setGame] = useState(null);
+    const [characters, setCharacters] = useState(null)
     const [tournaments, setTournaments] = useState([]);
     const [filteredTournaments, setFilteredTournaments] = useState([]);
     const [filteredOpponents, setFilteredOpponents] = useState([]);
-    const [tournamentsQuery] = useState('');
     const [filterTournamentsQuery, setFilterTournamentsQuery] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [dropdownVisible, setDropdownVisible] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
-    const [perPage, setPerPage] = useState(10);
+    const [perPage, setPerPage] = useState(5);
     const [currentPage2, setCurrentPage2] = useState(1);
-    const [perPage2, setPerPage2] = useState(10);
+    const [perPage2, setPerPage2] = useState(5);
     const navigate = useNavigate();
     const location = useLocation();
     const [sortKey, setSortKey] = useState('tournamentName');
     const [sortKey2, setSortKey2] = useState('tournamentName');
 
+    const fetchRegionData = async () => {
+        try {
+            const response = await fetch(`/players/${playerId}`);
+            if (!response.ok) throw new Error('Failed to fetch player data');
+            const data = await response.json();
+            const playerData = data.player;
+            setPlayer(playerData);
+            const gameData = playerData.games.find(g => g.gameId === parseInt(gameId));
+            if (gameData) {
+                await fetchTournamentData(gameData);
+                setGame(gameData);
+                setFilteredOpponents(gameData.opponents);
+                setCharacters(aggregateCharacterData(gameData.opponents));
+            }
+        } catch (error) {
+            console.error('Error fetching region data:', error);
+        }
+    };
+
+    const fetchTournamentData = async (gameData) => {
+        let brackets = [];
+        for (const tournament of gameData.tournaments) {
+            try {
+                const tournamentData = await fetchData(`/tournaments/${tournament.tournamentId}`);
+                const eventData = await fetchData(`/tournaments/${tournament.tournamentId}/events/${tournament.eventId}`);
+                const nameOfBracket = `${tournamentData.tournament.tournamentName}: ${eventData[tournamentData.tournament._id].eventName}`;
+                brackets.push({
+                    _id: tournamentData.tournament._id,
+                    tournament: tournamentData.tournament,
+                    event: eventData[tournamentData.tournament._id],
+                    placement: tournament.placement,
+                    nameOfBracket
+                });
+            } catch (error) {
+                console.error(`Error fetching tournament ${tournament.tournamentId}:`, error);
+            }
+        }
+        gameData.opponents.forEach(opponent => {
+            opponent._id = opponent.opponentId;
+            opponent.tournaments = addTournamentNames(opponent.tournaments, brackets);
+        });
+        setTournaments(brackets);
+    };
+
+    const fetchData = async (url) => {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Failed to fetch data from ${url}`);
+        return response.json();
+    };
+
+    const addTournamentNames = (tournaments, brackets) => {
+        return tournaments.map(tournament => {
+            const bracket = brackets.find(bracket =>
+                bracket.tournament._id === tournament.tournamentId &&
+                bracket.event.eventId === tournament.eventId
+            );
+            return {
+                ...tournament,
+                tournamentName: bracket ? `${bracket.tournament.tournamentName}: ${bracket.event.eventName}` : 'Unknown Tournament',
+                startAt: bracket ? bracket.event.startAt : -1
+            };
+        });
+    };
+
+    const aggregateCharacterData = (opponents) => {
+        let playerCharacters = {};
+        opponents.forEach(opponent => {
+            opponent.tournaments.forEach(tournament => {
+                tournament.matches.forEach(match => {
+                    updateCharacterData(playerCharacters, match);
+                });
+            });
+        });
+        return playerCharacters;
+    };
+
+    const updateCharacterData = (playerCharacters, match) => {
+        if (!playerCharacters.hasOwnProperty(match.playerChar)) {
+            playerCharacters[match.playerChar] = { plays: 0, winrate: 0, stages: {} };
+        }
+        const playerChar = playerCharacters[match.playerChar];
+        playerChar.plays += 1;
+        updateMatchData(playerChar, match);
+        if (match.stage !== "N/A") {
+            if (!playerChar.stages.hasOwnProperty(match.stage)) {
+                playerChar.stages[match.stage] = { plays: 0, winrate: 0 };
+            }
+            const stage = playerChar.stages[match.stage];
+            stage.plays += 1;
+            updateMatchData(stage, match);
+        }
+    };
+
+    const updateMatchData = (charData, match) => {
+        const opponentChar = charData[match.opponentChar] || { plays: 0, winrate: 0, stages: {} };
+        opponentChar.plays += 1;
+        charData[match.opponentChar] = opponentChar;
+
+        if (match.type === 'win') {
+            charData.winrate = ((charData.plays - 1) * charData.winrate + 1) / charData.plays;
+            opponentChar.winrate = ((opponentChar.plays - 1) * opponentChar.winrate + 1) / opponentChar.plays;
+        } else if (match.type === 'loss') {
+            charData.winrate = ((charData.plays - 1) * charData.winrate) / charData.plays;
+            opponentChar.winrate = ((opponentChar.plays - 1) * opponentChar.winrate) / opponentChar.plays;
+        }
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        setFilterTournamentsQuery(searchQuery);
-        console.log('Search Tournaments:', tournamentsQuery);
+        setFilteredTournaments(tournaments.filter(tournament =>
+            tournament.tournament.tournamentName.toLowerCase().includes(searchQuery.toLowerCase())
+        ));
     };
 
     const handleInputChange = (event) => {
@@ -43,81 +151,15 @@ const PlayerGamePage = () => {
         setDropdownVisible(false);
         navigate(`${location.pathname}/${eventId}`);
     };
-
+    
     useEffect(() => {
-        const fetchRegionData = async () => {
-            try {
-                let brackets = [];
-                const response = await fetch(`/players/${playerId}`);
-                if (!response.ok) {
-                    throw new Error('Failed to fetch region data');
-                }
-                const data = await response.json();
-                setPlayer(data.player);
-                for (const game of data.player.games) {
-                    if (game.gameId === parseInt(gameId)) {
-                        for (let tournament of game.tournaments) {
-                            try {
-                                const response = await fetch(`/tournaments/${tournament.tournamentId}`);
-                                if (!response.ok) {
-                                    throw new Error(`Failed to fetch tournament`);
-                                }
-                                const tournamentData = await response.json();
-                                try {
-                                    const response = await fetch(`/tournaments/${tournament.tournamentId}/events/${tournament.eventId}`);
-                                    if (!response.ok) {
-                                        throw new Error(`Failed to fetch event`);
-                                    }
-                                    const eventData = await response.json();
-                                    const nameOfBracket = `${tournamentData.tournament.tournamentName}: ${eventData[tournamentData.tournament._id].eventName}`;
-                                    brackets.push({
-                                        _id: tournamentData.tournament._id,
-                                        tournament: tournamentData.tournament,
-                                        event: eventData[tournamentData.tournament._id],
-                                        placement: tournament.placement,
-                                        nameOfBracket: nameOfBracket
-                                    });
-                                } catch (error) {
-                                    console.error(`Error fetching ${tournament.eventId}:`, error);
-                                }
-                            } catch (error) {
-                                console.error(`Error fetching ${tournament.tournamentId}:`, error);
-                            }
-                        }
-                        for (let opponent of game.opponents) {
-                            opponent._id = opponent.opponentId;
-                            const addTournamentNames = (tournaments, brackets) => {
-                                return tournaments.map(tournament => {
-                                    const bracket = brackets.find(bracket =>
-                                        bracket.tournament._id === tournament.tournamentId &&
-                                        bracket.event.eventId === tournament.eventId
-                                    );
-                                    return {
-                                        ...tournament,
-                                        tournamentName: bracket ? `${bracket.tournament.tournamentName}: ${bracket.event.eventName}` : 'Unknown Tournament',
-                                        startAt: bracket ? bracket.event.startAt : -1
-                                    };
-                                });
-                            };
-                            opponent.tournaments = addTournamentNames(opponent.tournaments, brackets);
-                        }
-                        setGame(game);
-                        setFilteredOpponents(game.opponents);
-                        break;
-                    }
-                }
-                setTournaments(brackets);
-            } catch (error) {
-                console.error('Error fetching region data:', error);
-            }
-        };
         fetchRegionData();
     }, [playerId, gameId]);
 
     useEffect(() => {
         setFilteredTournaments(tournaments);
     }, [tournaments]);
-
+    
     const seasonTournamentMapper = (tournament) => ({
         tournament: tournament.tournament,
         event: tournament.event,
@@ -215,7 +257,7 @@ const PlayerGamePage = () => {
             if (opponent.tournaments.length === 0) {
                 opponents.splice(i, 1);
             }
-        }        
+        }
         setFilteredTournaments(filtered);
         setFilteredOpponents(opponents)
     };
@@ -224,7 +266,7 @@ const PlayerGamePage = () => {
         tournament.tournament.tournamentName.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    if (!player || !game || !sortedTournaments) {
+    if (!player || !game || !sortedTournaments || !characters) {
         return <div>Loading...</div>;
     }
 
