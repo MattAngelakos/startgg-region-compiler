@@ -310,7 +310,6 @@ const PlayerGamePage = () => {
     if (!player || !game || !sortedTournaments || !characters || !gameData) {
         return <div>Loading...</div>;
     }
-    console.log(gameData)
     const startIndex = (currentPage - 1) * perPage;
     const endIndex = startIndex + perPage;
     const startIndex2 = (currentPage2 - 1) * perPage2;
@@ -323,33 +322,55 @@ const PlayerGamePage = () => {
         const image = character.images.find(img => img.type === type);
         return image ? image.url : null;
     };
-    const renderData = (obj, depth = 0) => {
-        return Object.keys(obj).map((key) => {
-            if (key === "N/A") return null;
-            const value = obj[key];
-            const hasChildren = value && typeof value === 'object' && Object.keys(value).length > 0;
-            const characterImage = getCharacterImage(key, "stockIcon");
-            return (
-                <div key={key} style={{ marginLeft: depth * 20 }}>
-                    {hasChildren ? (
-                        <Collapsible trigger={
+    const renderData = (obj, depth = 0, prevKey = null, sortCriteria = null) => {
+    const sortedKeys = Object.keys(obj).sort((a, b) => {
+        if (!sortCriteria) return 0; 
+
+        const valueA = obj[a];
+        const valueB = obj[b];
+
+        if (sortCriteria === 'winrate') {
+            return (valueB.winrate || 0) - (valueA.winrate || 0);
+        } else if (sortCriteria === 'plays') {
+            return (valueB.plays || 0) - (valueA.plays || 0);
+        }
+        return 0; 
+    });
+
+    return sortedKeys.map((key) => {
+        if (key === "N/A") return null;
+        const value = obj[key];
+        const hasChildren = value && typeof value === 'object' && Object.keys(value).length > 0;
+        const characterImage = getCharacterImage(key, "stockIcon");
+
+        return (
+            <div key={key} style={{ marginLeft: depth * 20 }}>
+                {hasChildren || key === 'stages' ?  (
+                    <Collapsible 
+                        trigger={
                             <div>
                                 {characterImage && <img src={characterImage} alt={key} style={{ width: 20, marginRight: 10 }} />}
-                                {`${key} (${value.plays} plays, ${Math.round(value.winrate * 100)}% winrate)`}
+                                {key === 'stages' ? (
+                                    hasChildren && <span>{`${key}`}</span>
+                                ) : (
+                                    <span>{`${key} (${value.plays} plays, ${Math.round(value.winrate * 100)}% winrate)`}</span>
+                                )}
                             </div>
-                        }>
-                            {renderData(value, depth + 1)}
-                        </Collapsible>
-                    ) : (
-                        <div>
-                            {characterImage && <img src={characterImage} alt={key} style={{ width: 20, marginRight: 10 }} />}
-                            {`${key}: ${value}`}
-                        </div>
-                    )}
-                </div>
-            );
-        });
-    };
+                        }
+                    >
+                    {prevKey !== 'stages' && renderData(value, depth + 1, key, sortCriteria)}
+                    </Collapsible>
+                ) : (
+                    <div>
+                        {characterImage && <img src={characterImage} alt={key} style={{ width: 20, marginRight: 10 }} />}
+                        {`${key}: ${value}`}
+                    </div>
+                )}
+            </div>
+        );
+    });
+};
+
     return (
         <div className="app">
             <Header link={`/players/${playerId}`} linkname={'Players'} />
@@ -439,7 +460,7 @@ const PlayerGamePage = () => {
                     }}
                 />
                 <div>
-                    {renderData(characters)}
+                    {renderData(characters, 0, null, 'plays')}
                 </div>
             </main>
         </div>
