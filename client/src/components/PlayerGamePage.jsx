@@ -7,6 +7,7 @@ import TournamentItem from './TournamentItem';
 import { compareWinrate, sortLev, sortLev2 } from '../helpers';
 import OpponentItem from './OpponentItem';
 import TournamentFilter from './TournamentFilter';
+import Collapsible from 'react-collapsible';
 
 const PlayerGamePage = () => {
     const { playerId, gameId } = useParams();
@@ -119,15 +120,26 @@ const PlayerGamePage = () => {
             }
             const stage = playerChar.stages[match.stage];
             stage.plays += 1;
+            updateMatchData(playerChar, match, true);
             updateMatchData(stage, match);
         }
     };
 
-    const updateMatchData = (charData, match) => {
-        const opponentChar = charData[match.opponentChar] || { plays: 0, winrate: 0, stages: {} };
+    const updateMatchData = (charData, match, stage) => {
+        let opponentChar
+        if (stage) {
+            opponentChar = charData[match.opponentChar]['stages'][match.stage] || { plays: 0, winrate: 0 };
+        }
+        else {
+            opponentChar = charData[match.opponentChar] || { plays: 0, winrate: 0, stages: {} };
+        }
         opponentChar.plays += 1;
-        charData[match.opponentChar] = opponentChar;
-
+        if (stage) {
+            charData[match.opponentChar]['stages'][match.stage] = opponentChar
+        }
+        else {
+            charData[match.opponentChar] = opponentChar;
+        }
         if (match.type === 'win') {
             charData.winrate = ((charData.plays - 1) * charData.winrate + 1) / charData.plays;
             opponentChar.winrate = ((opponentChar.plays - 1) * opponentChar.winrate + 1) / opponentChar.plays;
@@ -160,7 +172,7 @@ const PlayerGamePage = () => {
         setDropdownVisible(false);
         navigate(`${location.pathname}/${eventId}`);
     };
-    
+
     useEffect(() => {
         fetchRegionData(playerId, gameId);
     }, [playerId, gameId]);
@@ -168,7 +180,7 @@ const PlayerGamePage = () => {
     useEffect(() => {
         setFilteredTournaments(tournaments);
     }, [tournaments]);
-    
+
     const seasonTournamentMapper = (tournament) => ({
         tournament: tournament.tournament,
         event: tournament.event,
@@ -281,14 +293,31 @@ const PlayerGamePage = () => {
     if (!player || !game || !sortedTournaments || !characters) {
         return <div>Loading...</div>;
     }
-
+    console.log(characters)
     const startIndex = (currentPage - 1) * perPage;
     const endIndex = startIndex + perPage;
     const startIndex2 = (currentPage2 - 1) * perPage2;
     const endIndex2 = startIndex2 + perPage2;
     let currentTournaments = sortedTournaments.slice(startIndex, endIndex);
     let currentOpponents = sortedOpponents.slice(startIndex2, endIndex2);
-
+    const renderData = (obj, depth = 0) => {
+        return Object.keys(obj).map((key) => {
+          if (key === "N/A") return null;
+          const value = obj[key];
+          const hasChildren = value && typeof value === 'object' && Object.keys(value).length > 0;
+          return (
+            <div key={key} style={{ marginLeft: depth * 20 }}>
+              {hasChildren ? (
+                <Collapsible trigger={`${key} (${value.plays} plays, ${Math.round(value.winrate * 100)}% winrate)`}>
+                  {renderData(value, depth + 1)}
+                </Collapsible>
+              ) : (
+                <div>{`${key}: ${value}`}</div>
+              )}
+            </div>
+          );
+        });
+    };    
     return (
         <div className="app">
             <Header link={`/players/${playerId}`} linkname={'Players'} />
@@ -377,6 +406,9 @@ const PlayerGamePage = () => {
                         setCurrentPage2(1);
                     }}
                 />
+                <div>
+                    {renderData(characters)}
+                </div>
             </main>
         </div>
     );
