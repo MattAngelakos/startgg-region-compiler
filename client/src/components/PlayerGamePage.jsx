@@ -14,6 +14,7 @@ const PlayerGamePage = () => {
     const [player, setPlayer] = useState(null);
     const [game, setGame] = useState(null);
     const [characters, setCharacters] = useState(null)
+    const [gameData, setGameData] = useState(null)
     const [tournaments, setTournaments] = useState([]);
     const [filteredTournaments, setFilteredTournaments] = useState([]);
     const [filteredOpponents, setFilteredOpponents] = useState([]);
@@ -45,6 +46,18 @@ const PlayerGamePage = () => {
                 setFilteredOpponents(gameData.opponents);
                 setCharacters(aggregateCharacterData(gameData.opponents));
             }
+        } catch (error) {
+            console.error('Error fetching region data:', error);
+        }
+    };
+
+    const fetchGameData = async (gameId) => {
+        try {
+            const response = await fetch(`/games/${gameId}`);
+            if (!response.ok) throw new Error('Failed to fetch player data');
+            const data = await response.json();
+            const gameData = data.game.game;
+            setGameData(gameData);
         } catch (error) {
             console.error('Error fetching region data:', error);
         }
@@ -178,6 +191,10 @@ const PlayerGamePage = () => {
     }, [playerId, gameId]);
 
     useEffect(() => {
+        fetchGameData(gameId);
+    }, [gameId])
+
+    useEffect(() => {
         setFilteredTournaments(tournaments);
     }, [tournaments]);
 
@@ -290,34 +307,49 @@ const PlayerGamePage = () => {
         tournament.tournament.tournamentName.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    if (!player || !game || !sortedTournaments || !characters) {
+    if (!player || !game || !sortedTournaments || !characters || !gameData) {
         return <div>Loading...</div>;
     }
-    console.log(characters)
+    console.log(gameData)
     const startIndex = (currentPage - 1) * perPage;
     const endIndex = startIndex + perPage;
     const startIndex2 = (currentPage2 - 1) * perPage2;
     const endIndex2 = startIndex2 + perPage2;
     let currentTournaments = sortedTournaments.slice(startIndex, endIndex);
     let currentOpponents = sortedOpponents.slice(startIndex2, endIndex2);
+    const getCharacterImage = (name, type) => {
+        const character = gameData.characters.find(char => char.name === name);
+        if (!character) return null;
+        const image = character.images.find(img => img.type === type);
+        return image ? image.url : null;
+    };
     const renderData = (obj, depth = 0) => {
         return Object.keys(obj).map((key) => {
-          if (key === "N/A") return null;
-          const value = obj[key];
-          const hasChildren = value && typeof value === 'object' && Object.keys(value).length > 0;
-          return (
-            <div key={key} style={{ marginLeft: depth * 20 }}>
-              {hasChildren ? (
-                <Collapsible trigger={`${key} (${value.plays} plays, ${Math.round(value.winrate * 100)}% winrate)`}>
-                  {renderData(value, depth + 1)}
-                </Collapsible>
-              ) : (
-                <div>{`${key}: ${value}`}</div>
-              )}
-            </div>
-          );
+            if (key === "N/A") return null;
+            const value = obj[key];
+            const hasChildren = value && typeof value === 'object' && Object.keys(value).length > 0;
+            const characterImage = getCharacterImage(key, "stockIcon");
+            return (
+                <div key={key} style={{ marginLeft: depth * 20 }}>
+                    {hasChildren ? (
+                        <Collapsible trigger={
+                            <div>
+                                {characterImage && <img src={characterImage} alt={key} style={{ width: 20, marginRight: 10 }} />}
+                                {`${key} (${value.plays} plays, ${Math.round(value.winrate * 100)}% winrate)`}
+                            </div>
+                        }>
+                            {renderData(value, depth + 1)}
+                        </Collapsible>
+                    ) : (
+                        <div>
+                            {characterImage && <img src={characterImage} alt={key} style={{ width: 20, marginRight: 10 }} />}
+                            {`${key}: ${value}`}
+                        </div>
+                    )}
+                </div>
+            );
         });
-    };    
+    };
     return (
         <div className="app">
             <Header link={`/players/${playerId}`} linkname={'Players'} />
