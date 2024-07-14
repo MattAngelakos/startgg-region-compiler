@@ -7,7 +7,7 @@ import TournamentItem from './TournamentItem';
 import { compareWinrate, sortLev, sortLev2 } from '../helpers';
 import OpponentItem from './OpponentItem';
 import TournamentFilter from './TournamentFilter';
-import Collapsible from 'react-collapsible';
+import CharacterRender from './CharacterRender';
 
 const PlayerGamePage = () => {
     const { playerId, gameId } = useParams();
@@ -31,6 +31,7 @@ const PlayerGamePage = () => {
     const location = useLocation();
     const [sortKey, setSortKey] = useState('tournamentName');
     const [sortKey2, setSortKey2] = useState('tournamentName');
+    const [sortKey3, setSortKey3] = useState('plays');
 
     const fetchRegionData = async (playerId, gameId) => {
         try {
@@ -316,61 +317,6 @@ const PlayerGamePage = () => {
     const endIndex2 = startIndex2 + perPage2;
     let currentTournaments = sortedTournaments.slice(startIndex, endIndex);
     let currentOpponents = sortedOpponents.slice(startIndex2, endIndex2);
-    const getCharacterImage = (name, type) => {
-        const character = gameData.characters.find(char => char.name === name);
-        if (!character) return null;
-        const image = character.images.find(img => img.type === type);
-        return image ? image.url : null;
-    };
-    const renderData = (obj, depth = 0, prevKey = null, sortCriteria = null) => {
-    const sortedKeys = Object.keys(obj).sort((a, b) => {
-        if (!sortCriteria) return 0; 
-
-        const valueA = obj[a];
-        const valueB = obj[b];
-
-        if (sortCriteria === 'winrate') {
-            return (valueB.winrate || 0) - (valueA.winrate || 0);
-        } else if (sortCriteria === 'plays') {
-            return (valueB.plays || 0) - (valueA.plays || 0);
-        }
-        return 0; 
-    });
-
-    return sortedKeys.map((key) => {
-        if (key === "N/A") return null;
-        const value = obj[key];
-        const hasChildren = value && typeof value === 'object' && Object.keys(value).length > 0;
-        const characterImage = getCharacterImage(key, "stockIcon");
-
-        return (
-            <div key={key} style={{ marginLeft: depth * 20 }}>
-                {hasChildren || key === 'stages' ?  (
-                    <Collapsible 
-                        trigger={
-                            <div>
-                                {characterImage && <img src={characterImage} alt={key} style={{ width: 20, marginRight: 10 }} />}
-                                {key === 'stages' ? (
-                                    hasChildren && <span>{`${key}`}</span>
-                                ) : (
-                                    <span>{`${key} (${value.plays} plays, ${Math.round(value.winrate * 100)}% winrate)`}</span>
-                                )}
-                            </div>
-                        }
-                    >
-                    {prevKey !== 'stages' && renderData(value, depth + 1, key, sortCriteria)}
-                    </Collapsible>
-                ) : (
-                    <div>
-                        {characterImage && <img src={characterImage} alt={key} style={{ width: 20, marginRight: 10 }} />}
-                        {`${key}: ${value}`}
-                    </div>
-                )}
-            </div>
-        );
-    });
-};
-
     return (
         <div className="app">
             <Header link={`/players/${playerId}`} linkname={'Players'} />
@@ -459,8 +405,19 @@ const PlayerGamePage = () => {
                         setCurrentPage2(1);
                     }}
                 />
+                <div className="sort-options">
+                    <label>Sort by: </label>
+                    <select onChange={(e) => setSortKey3(e.target.value)} value={sortKey3}>
+                        <option value="name">Alphanumerical</option>
+                        <option value="-name">Reverse Alphanumerical</option>
+                        <option value="plays">Most Played</option>
+                        <option value="-plays">Least Played</option>
+                        <option value="winrate">Highest Winrate</option>
+                        <option value="-winrate">Lowest Winrate</option>
+                    </select>
+                </div>
                 <div>
-                    {renderData(characters, 0, null, 'plays')}
+                    <CharacterRender data={characters} sortCriteria={sortKey3} gameData={gameData}/>
                 </div>
             </main>
         </div>
