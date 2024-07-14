@@ -8,6 +8,9 @@ import { compareWinrate, sortLev, sortLev2 } from '../helpers';
 import OpponentItem from './OpponentItem';
 import TournamentFilter from './TournamentFilter';
 import CharacterRender from './CharacterRender';
+import * as Checkbox from '@radix-ui/react-checkbox';
+import { CheckIcon } from '@radix-ui/react-icons';
+import DateRangePicker from './DateRangePicker';
 
 const PlayerGamePage = () => {
     const { playerId, gameId } = useParams();
@@ -17,6 +20,7 @@ const PlayerGamePage = () => {
     const [gameData, setGameData] = useState(null)
     const [tournaments, setTournaments] = useState([]);
     const [filteredTournaments, setFilteredTournaments] = useState([]);
+    const [opponentsBase, setOpponents] = useState([]);
     const [filteredOpponents, setFilteredOpponents] = useState([]);
     const [filterTournamentsQuery, setFilterTournamentsQuery] = useState('');
     const [filterOpponentsQuery, setFilterOpponentsQuery] = useState('');
@@ -32,6 +36,12 @@ const PlayerGamePage = () => {
     const [sortKey, setSortKey] = useState('tournamentName');
     const [sortKey2, setSortKey2] = useState('tournamentName');
     const [sortKey3, setSortKey3] = useState('plays');
+    const [checked, setChecked] = useState(true);
+    const [checked2, setChecked2] = useState(true);
+    const [startDate, setStartDate] = useState(null);
+    const [endDate, setEndDate] = useState(null);
+    const [minEntrants, setMinEntrants] = useState('');
+    const [maxEntrants, setMaxEntrants] = useState('');
 
     const fetchRegionData = async (playerId, gameId) => {
         try {
@@ -44,7 +54,8 @@ const PlayerGamePage = () => {
             if (gameData) {
                 await fetchTournamentData(gameData);
                 setGame(gameData);
-                setFilteredOpponents(gameData.opponents);
+                setOpponents(gameData.opponents);
+                setFilteredOpponents(gameData.opponents)
                 setCharacters(aggregateCharacterData(gameData.opponents));
             }
         } catch (error) {
@@ -76,7 +87,7 @@ const PlayerGamePage = () => {
                     tournament: tournamentData.tournament,
                     event: eventData[tournamentData.tournament._id],
                     placement: tournament.placement,
-                    nameOfBracket
+                    nameOfBracket: nameOfBracket
                 });
             } catch (error) {
                 console.error(`Error fetching tournament ${tournament.tournamentId}:`, error);
@@ -168,6 +179,24 @@ const PlayerGamePage = () => {
         setFilterTournamentsQuery(searchQuery);
     };
 
+    const handleSubmit3 = (e) => {
+        e.preventDefault();
+        let filter = []
+        for (const bracket of tournaments) {
+            if (startDate) {
+                if (bracket.event.startAt < (Math.floor(startDate / 1000))) {
+                    filter.push(bracket)
+                }
+            }
+            if (endDate) {
+                if (bracket.event.startAt > (Math.floor(endDate / 1000))) {
+                    filter.push(bracket)
+                }
+            }
+        }
+        handleFilter(filter)
+    };
+
     const handleSubmit2 = (e) => {
         e.preventDefault();
         setFilterOpponentsQuery(searchQuery2);
@@ -208,6 +237,35 @@ const PlayerGamePage = () => {
     const opponentMapper = (opponent) => ({
         opponent: opponent
     });
+
+    const handleCheckedChange = (newChecked, setChecked, type) => {
+        setChecked(newChecked);
+        let filter = []
+        for (const bracket of tournaments) {
+            if (type === 1) {
+                if (!bracket.event.isOnline && !newChecked) {
+                    filter.push(bracket)
+                }
+            }
+            else {
+                if (bracket.event.isOnline && !newChecked) {
+                    filter.push(bracket)
+                }
+            }
+        }
+        handleFilter(filter)
+    };
+    const handleEntrantsFilter = () => {
+        const min = parseInt(minEntrants);
+        const max = parseInt(maxEntrants);
+        if (isNaN(min) || isNaN(max)) return;
+        const filtered = tournaments.filter(tournament => {
+            const entrants = tournament.event.entrants;
+            return !(entrants >= min && entrants <= max);
+        });
+        console.log(filtered)
+        handleFilter(filtered);
+    };
 
     let sortedTournaments = useMemo(() => {
         if (!filteredTournaments) return [];
@@ -292,23 +350,26 @@ const PlayerGamePage = () => {
     const handleFilter = (filteredBrackets) => {
         const checkIds = filteredBrackets.map(item => item.event.eventId);
         const filtered = tournaments.filter(item => !checkIds.includes(item.event.eventId))
-        let opponents = filteredOpponents
-        for (let i = opponents.length - 1; i >= 0; i--) {
-            let opponent = opponents[i];
-            opponent.tournaments = opponent.tournaments.filter(item => !checkIds.includes(item.eventId));
-            if (opponent.tournaments.length === 0) {
-                opponents.splice(i, 1);
+        let opponents = opponentsBase.map(opponent => ({
+            ...opponent,
+            tournaments: opponent.tournaments.slice(),
+        }));
+        if (checkIds.length !== 0) {
+            for (let i = opponents.length - 1; i >= 0; i--) {
+                let opponent = opponents[i];
+                opponent.tournaments = opponent.tournaments.filter(item => !checkIds.includes(item.eventId));
+                if (opponent.tournaments.length === 0) {
+                    opponents.splice(i, 1);
+                }
             }
         }
         setFilteredTournaments(filtered);
         setFilteredOpponents(opponents)
         setCharacters(aggregateCharacterData(opponents))
     };
-
     let filteredTournaments2 = sortedTournaments.filter(tournament =>
         tournament.tournament.tournamentName.toLowerCase().includes(searchQuery.toLowerCase())
     );
-
     if (!player || !game || !sortedTournaments || !characters || !gameData) {
         return <div>Loading...</div>;
     }
@@ -318,6 +379,7 @@ const PlayerGamePage = () => {
     const endIndex2 = startIndex2 + perPage2;
     let currentTournaments = sortedTournaments.slice(startIndex, endIndex);
     let currentOpponents = sortedOpponents.slice(startIndex2, endIndex2);
+
     return (
         <div className="app">
             <Header link={`/players/${playerId}`} linkname={'Players'} />
@@ -362,6 +424,63 @@ const PlayerGamePage = () => {
                         ))}
                     </ul>
                 )}
+                <form>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <Checkbox.Root
+                            className="CheckboxRoot" defaultChecked id="c1"
+                            checked={checked}
+                            onCheckedChange={(newChecked) => handleCheckedChange(newChecked, setChecked, 1)}>
+                            <Checkbox.Indicator className="CheckboxIndicator">
+                                <CheckIcon />
+                            </Checkbox.Indicator>
+                        </Checkbox.Root>
+                        <label className="Label" htmlFor="c1">
+                            Offline Brackets
+                        </label>
+                        <Checkbox.Root
+                            className="CheckboxRoot" defaultChecked id="c2"
+                            checked={checked2}
+                            onCheckedChange={(newChecked) => handleCheckedChange(newChecked, setChecked2, 2)}>
+                            <Checkbox.Indicator className="CheckboxIndicator">
+                                <CheckIcon />
+                            </Checkbox.Indicator>
+                        </Checkbox.Root>
+                        <label className="Label" htmlFor="c2">
+                            Online Brackets
+                        </label>
+                    </div>
+                </form>
+                <div>
+                    <form onSubmit={(e) => { e.preventDefault(); handleEntrantsFilter(); }}>
+                        <label>
+                            Min Entrants:
+                            <input
+                                type="number"
+                                value={minEntrants}
+                                onChange={(e) => setMinEntrants(e.target.value)}
+                            />
+                        </label>
+                        <label>
+                            Max Entrants:
+                            <input
+                                type="number"
+                                value={maxEntrants}
+                                onChange={(e) => setMaxEntrants(e.target.value)}
+                            />
+                        </label>
+                        <button type="submit">Filter by Entrants</button>
+                    </form>
+                </div>
+                <form onSubmit={handleSubmit3}>
+                    <DateRangePicker
+                        startDate={startDate}
+                        setStartDate={setStartDate}
+                        endDate={endDate}
+                        setEndDate={setEndDate}
+                    />
+                    <button type="submit">Search</button>
+                </form>
+
                 <Results items={currentTournaments} Component={TournamentItem} propMapper={seasonTournamentMapper} />
                 <Pagination
                     currentPage={currentPage}
@@ -418,7 +537,7 @@ const PlayerGamePage = () => {
                     </select>
                 </div>
                 <div>
-                    <CharacterRender data={characters} sortCriteria={sortKey3} gameData={gameData}/>
+                    <CharacterRender data={characters} sortCriteria={sortKey3} gameData={gameData} />
                 </div>
             </main>
         </div>

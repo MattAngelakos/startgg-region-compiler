@@ -393,7 +393,7 @@ const App = () => {
   h2h = do_glicko2(h2h)
   h2h = finish_h2h(h2h)
   return (
-    //<div className="app"><main><br></br><PlayerFilter originalObject={h2h} originalH2H={unfinished_h2h}/></main></div>
+   //<div className="app"><main><br></br><PlayerFilter originalObject={h2h} originalH2H={unfinished_h2h}/></main></div>
     <Router>
       <Routes>
         <Route path="/regions" element={<LeaguePage />} />
