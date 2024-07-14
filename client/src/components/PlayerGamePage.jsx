@@ -302,6 +302,7 @@ const PlayerGamePage = () => {
         }
         setFilteredTournaments(filtered);
         setFilteredOpponents(opponents)
+        setCharacters(aggregateCharacterData(opponents))
     };
 
     let filteredTournaments2 = sortedTournaments.filter(tournament =>
