@@ -20,6 +20,7 @@ const PlayerGamePage = () => {
     const [gameData, setGameData] = useState(null)
     const [tournaments, setTournaments] = useState([]);
     const [filteredTournaments, setFilteredTournaments] = useState([]);
+    const [combinedTournaments, setCombinedTournaments] = useState([]);
     const [opponentsBase, setOpponents] = useState([]);
     const [filteredOpponents, setFilteredOpponents] = useState([]);
     const [filterTournamentsQuery, setFilterTournamentsQuery] = useState('');
@@ -98,6 +99,7 @@ const PlayerGamePage = () => {
             opponent.tournaments = addTournamentNames(opponent.tournaments, brackets);
         });
         setTournaments(brackets);
+        setCombinedTournaments(brackets);
     };
 
     const fetchData = async (url) => {
@@ -250,11 +252,24 @@ const PlayerGamePage = () => {
         }
         const min = parseInt(minEntrants);
         const max = parseInt(maxEntrants);
-        if (isNaN(min) || isNaN(max)) return;
+        console.log(min)
+        console.log(max)
+        let minB, maxB 
         let filter2 = tournaments.filter(tournament => {
             const entrants = tournament.event.entrants;
-            return !(entrants >= min && entrants <= max);
+            if(isNaN(min)){
+                minB = true
+            }else{
+                minB = (entrants >= min)
+            }
+            if(isNaN(max)){
+                maxB = true
+            }else{
+                maxB = (entrants <= max)
+            }
+            return !(minB && maxB);
         });
+        console.log(filter2)
         filter = filter.concat(filter2)
         let filter3 = []
         if(type !== 0){
@@ -273,7 +288,7 @@ const PlayerGamePage = () => {
         }
         filter = filter.concat(filter3)
         const finalFilter = Array.from(new Set(filter))
-        handleFilter(finalFilter)
+        handleFilter(finalFilter, true)
     }
 
     let sortedTournaments = useMemo(() => {
@@ -356,13 +371,27 @@ const PlayerGamePage = () => {
         return opponents;
     }, [game, sortKey2, filteredOpponents, filterOpponentsQuery]);
 
-    const handleFilter = (filteredBrackets) => {
+    const handleFilter = (filteredBrackets, type) => {
         const checkIds = filteredBrackets.map(item => item.event.eventId);
-        const filtered = tournaments.filter(item => !checkIds.includes(item.event.eventId))
-        let opponents = opponentsBase.map(opponent => ({
-            ...opponent,
-            tournaments: opponent.tournaments.slice(),
-        }));
+        let filtered = []
+        if(type){
+            filtered = tournaments.filter(item => !checkIds.includes(item.event.eventId))
+        }else{
+            filtered = combinedTournaments.filter(item => !checkIds.includes(item.event.eventId))
+        }
+        let opponents = []
+        if(type){
+            opponents = opponentsBase.map(opponent => ({
+                ...opponent,
+                tournaments: opponent.tournaments.slice(),
+            }));
+        }
+        else{
+            opponents = filteredOpponents.map(opponent => ({
+                ...opponent,
+                tournaments: opponent.tournaments.slice(),
+            })); 
+        }
         if (checkIds.length !== 0) {
             for (let i = opponents.length - 1; i >= 0; i--) {
                 let opponent = opponents[i];
@@ -371,6 +400,9 @@ const PlayerGamePage = () => {
                     opponents.splice(i, 1);
                 }
             }
+        }
+        if(type){
+            setCombinedTournaments(filtered)
         }
         setFilteredTournaments(filtered);
         setFilteredOpponents(opponents)
@@ -395,7 +427,7 @@ const PlayerGamePage = () => {
             <main>
                 {player.gamerTag}
                 <TournamentFilter
-                    tournaments={tournaments}
+                    tournaments={combinedTournaments}
                     filterh2h={handleFilter}
                 />
                 <div className="sort-options">
