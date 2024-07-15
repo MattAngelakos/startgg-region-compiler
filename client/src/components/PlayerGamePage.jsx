@@ -179,24 +179,6 @@ const PlayerGamePage = () => {
         setFilterTournamentsQuery(searchQuery);
     };
 
-    const handleSubmit3 = (e) => {
-        e.preventDefault();
-        let filter = []
-        for (const bracket of tournaments) {
-            if (startDate) {
-                if (bracket.event.startAt < (Math.floor(startDate / 1000))) {
-                    filter.push(bracket)
-                }
-            }
-            if (endDate) {
-                if (bracket.event.startAt > (Math.floor(endDate / 1000))) {
-                    filter.push(bracket)
-                }
-            }
-        }
-        handleFilter(filter)
-    };
-
     const handleSubmit2 = (e) => {
         e.preventDefault();
         setFilterOpponentsQuery(searchQuery2);
@@ -238,34 +220,61 @@ const PlayerGamePage = () => {
         opponent: opponent
     });
 
+    const handleSubmit3 = (e) => {
+        e.preventDefault();
+        combinedFilter(0);
+    };
+
     const handleCheckedChange = (newChecked, setChecked, type) => {
         setChecked(newChecked);
+        combinedFilter(type, newChecked)
+    };
+
+    const handleEntrantsFilter = () => {
+        combinedFilter(0);
+    };
+
+    const combinedFilter = (type, newChecked) => {
         let filter = []
         for (const bracket of tournaments) {
-            if (type === 1) {
-                if (!bracket.event.isOnline && !newChecked) {
+            if (startDate) {
+                if (bracket.event.startAt < (Math.floor(startDate / 1000))) {
                     filter.push(bracket)
                 }
             }
-            else {
-                if (bracket.event.isOnline && !newChecked) {
+            if (endDate) {
+                if (bracket.event.startAt > (Math.floor(endDate / 1000))) {
                     filter.push(bracket)
                 }
             }
         }
-        handleFilter(filter)
-    };
-    const handleEntrantsFilter = () => {
         const min = parseInt(minEntrants);
         const max = parseInt(maxEntrants);
         if (isNaN(min) || isNaN(max)) return;
-        const filtered = tournaments.filter(tournament => {
+        let filter2 = tournaments.filter(tournament => {
             const entrants = tournament.event.entrants;
             return !(entrants >= min && entrants <= max);
         });
-        console.log(filtered)
-        handleFilter(filtered);
-    };
+        filter = filter.concat(filter2)
+        let filter3 = []
+        if(type !== 0){
+            for (const bracket of tournaments) {
+                if (type === 1) {
+                    if (!bracket.event.isOnline && !newChecked) {
+                        filter.push(bracket)
+                    }
+                }
+                else {
+                    if (bracket.event.isOnline && !newChecked) {
+                        filter.push(bracket)
+                    }
+                }
+            }
+        }
+        filter = filter.concat(filter3)
+        const finalFilter = Array.from(new Set(filter))
+        handleFilter(finalFilter)
+    }
 
     let sortedTournaments = useMemo(() => {
         if (!filteredTournaments) return [];

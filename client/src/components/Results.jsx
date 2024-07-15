@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Results = ({ items, Component, propMapper, type }) => {
+const Results = ({ items, Component, propMapper }) => {
   return (
     <div className="results">
       {items.map((item) => (
