@@ -62,31 +62,39 @@ catch (e){
 // catch (e){
 //     console.log(e);
 // }
-// try{
-//     syrup = await getPlayer(parseInt(syrup._id))
-// }catch(e){
-//     console.log(e)
+// try {
+//     smashUlt = await createGameForPlayer(15768, 1386)
+//     console.log(smashUlt);
 // }
-// let filtered2 
-// try{
-//     filtered2 = await filters(syrup, 1386, "dateRange", 100, 0, 2024, 4, 1, 2024, 7, 1)
-//     console.log(filtered2.games[0].tournaments)
-// }catch (e) {
+// catch (e){
 //     console.log(e);
 // }
-// let goml
-// try{
-//     goml = await getEventResultsByRegion(nj._id, "q2_2024", 570293, 948374)
-//     console.log(goml[0].matches)
-// }catch (e) {
+// try {
+//     console.log(await setsRequest(15768, 1386))
+// }
+// catch (e){
 //     console.log(e);
 // }
-// let game
-// try{
-//     game = await createGame(1386)
-//     console.log(game)
+// await new Promise(r => setTimeout(r, 30000));
+// let marvin
+// try {
+//     marvin = await createPlayer(1189720)
+//     console.log(marvin);
 // }
-// catch (e) {
+// catch (e){
+//     console.log(e);
+// }
+// try {
+//     smashUlt = await createGameForPlayer(1189720, 1386)
+//     console.log(smashUlt);
+// }
+// catch (e){
+//     console.log(e);
+// }
+// try {
+//     console.log(await setsRequest(1189720, 1386))
+// }
+// catch (e){
 //     console.log(e);
 // }
 
