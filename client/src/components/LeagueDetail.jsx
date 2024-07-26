@@ -92,6 +92,7 @@ const LeagueDetail = () => {
         };
         fetchRegionData();
     }, [regionId]);
+    
     const filteredSeasons = useMemo(() => {
         if (!region) return [];
         return region.seasons.filter((season) => {
@@ -120,6 +121,7 @@ const LeagueDetail = () => {
             _id: season.seasonName,
         }));
     }, [region, filterPlayersQuery, filterTournamentsQuery, sendStartDate, sendEndDate]);
+
     const seasonPropMapper = useCallback(
         (season) => ({
             regionId: regionId,

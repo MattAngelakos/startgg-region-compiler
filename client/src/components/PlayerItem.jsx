@@ -20,7 +20,7 @@ const PlayerItem = ({ player, gameId }) => {
     }
     return (
         <div className="player-item">
-            <img src={player.image} alt={`${player.gamerTag} logo`} className="player-logo" />
+            <img src={player.pfp} alt={`${player.gamerTag} logo`} className="player-logo" />
             <div className="player-info">
                 <Link to={`${window.location.href}/${player._id}`}>
                     <h2>{player.gamerTag}</h2>
