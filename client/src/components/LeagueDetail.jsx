@@ -5,6 +5,9 @@ import SearchBar from './SearchBar';
 import DateRangePicker from './DateRangePicker';
 import Results from './Results';
 import SeasonItem from './SeasonItem';
+import Background from "./Background";
+import SeasonInfo from "./SeasonInfo";
+import LinkButton from './LinkButton';
 
 const LeagueDetail = () => {
     const { regionId } = useParams();
@@ -134,9 +137,15 @@ const LeagueDetail = () => {
     }
     return (
         <div className="app">
-            <Header link={`/regions`}linkname={'Region'}/>
+            <Background/>
+            <Header/>
             <main>
-                <form onSubmit={handleSubmit}>
+                <div className="Buttons w-96 h-64 left-[247px] top-[387px] absolute">
+                    {/* Need a design for this, probably just search page for seasons */}
+                    
+                </div>
+                <div className="LeagueName left-[580px] top-[150px] absolute text-center text-black text-6xl font-medium font-['Inter'] leading-10">NJ Ultimate</div>
+                {/* <form onSubmit={handleSubmit}>
                     <SearchBar query={playersQuery} setQuery={setPlayersQuery} searchWord="Players" />
                     <SearchBar query={tournamentsQuery} setQuery={setTournamentsQuery} searchWord="Tournaments" />
                     <DateRangePicker
@@ -146,9 +155,8 @@ const LeagueDetail = () => {
                         setEndDate={setEndDate}
                     />
                     <button type="submit">Search</button>
-                </form>
-                <h1>League Detail for {regionId}</h1>
-                <Results items={filteredSeasons} Component={SeasonItem} propMapper={seasonPropMapper} />
+                </form> */}
+                {/* <Results items={filteredSeasons} Component={SeasonItem} propMapper={seasonPropMapper} /> */}
             </main>
         </div>
     );

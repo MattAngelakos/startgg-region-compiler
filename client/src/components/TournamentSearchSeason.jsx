@@ -5,6 +5,9 @@ import Results from './Results';
 import Pagination from './Pagination';
 import TournamentItem from './TournamentItem';
 import { sortLev2 } from '../helpers';
+import LinkButton from './LinkButton';
+import SeasonInfo from './SeasonInfo';
+import Background from './Background';
 
 const TournamentSearchSeason = () => {
     const { regionId, seasonName } = useParams();
@@ -173,9 +176,73 @@ const TournamentSearchSeason = () => {
 
     return (
         <div className="app">
-            <Header link={`/regions/${regionId}/seasons/${seasonName}`}linkname={seasonName}/>
+            <Background/>
+            <Header/>
             <main>
-                <h1>League Detail for {regionId}</h1>
+            <div className="Buttons w-96 h-28 left-[247px] top-[725px] absolute">
+                    {/* Need to redirect to /players instead of /tournaments */}
+                    <LinkButton to=""> 
+                    <div className="SearchPlayers w-96 h-24 px-14 py-9 left-[562px] top-0 absolute bg-zinc-300 rounded-full shadow justify-center items-center gap-2.5 inline-flex">
+                        <div className="SearchPlayers text-center text-black text-3xl font-medium font-['Inter'] leading-10">Search Players</div>
+                    </div>
+                    </LinkButton>
+                    {/* Need to redirect back */}
+                    <LinkButton to="">
+                    <div className="LeagueHomePage w-96 h-24 px-14 py-9 left-0 top-0 absolute bg-zinc-300 rounded-full shadow justify-center items-center gap-2.5 inline-flex">
+                        <div className="LeagueHomePage text-center text-black text-3xl font-medium font-['Inter'] leading-10">League Home Page</div>
+                    </div>
+                    </LinkButton>
+                </div>
+                <div className="Rectangle2 w-3/4 h-64 left-[150px] top-[450px] absolute bg-zinc-300 shadow border-4 border-black" />
+                <div className="SearchResults w-96 h-96 left-[137px] top-[400px] absolute">
+                    
+                    <div className="Tournament3 w-96 h-14 left-[25px] top-[211px] absolute">
+                    <div className="PlayerCount h-10 left-[931px] top-[10px] absolute justify-start items-center gap-0.5 inline-flex">
+                        <img className="Tournament3PlayerImage w-10 h-10" src="https://via.placeholder.com/40x40" />
+                        <div className="Tournament3Numentrants text-black text-2xl font-medium font-['Inter'] leading-9">34</div>
+                    </div>
+                    <div className="Tournament3Date h-9 left-[763px] top-[12px] absolute justify-start items-start gap-3 inline-flex">
+                        <img className="Tournament3DateImage w-7 h-8" src="https://via.placeholder.com/30x33" />
+                        <div className="Tournament3Date text-black text-2xl font-medium font-['Inter'] leading-9">05/03/24</div>
+                    </div>
+                    <div className="IconAndName h-14 left-0 top-0 absolute justify-start items-center gap-6 inline-flex">
+                        <img className="Tournament3Icon w-14 h-14 rounded-3xl" src="https://via.placeholder.com/60x60" />
+                        <div className="Tournament3Name text-center text-black text-3xl font-medium font-['Inter'] leading-10">Encore Smash #246</div>
+                    </div>
+                    </div>
+                    <div className="Tournament2 w-96 h-14 left-[25px] top-[137px] absolute">
+                    <div className="PlayerCount h-10 left-[929px] top-[10px] absolute justify-start items-center gap-0.5 inline-flex">
+                        <img className="Tournament2PlayerImage w-10 h-10" src="https://via.placeholder.com/40x40" />
+                        <div className="Tournament2Numentrants text-black text-2xl font-medium font-['Inter'] leading-9">688</div>
+                    </div>
+                    <div className="Tournament2Date h-9 left-[763px] top-[10px] absolute justify-start items-start gap-3 inline-flex">
+                        <img className="Tournament2DateImage w-7 h-8" src="https://via.placeholder.com/30x33" />
+                        <div className="Tournament2Date text-black text-2xl font-medium font-['Inter'] leading-9">05/18/24</div>
+                    </div>
+                    <div className="IconAndName h-14 left-0 top-0 absolute justify-start items-center gap-6 inline-flex">
+                        <img className="Tournament2Icon w-14 h-14 rounded-3xl" src="https://via.placeholder.com/60x60" />
+                        <div className="Tournament2Name text-center text-black text-3xl font-medium font-['Inter'] leading-10">Get On My Level X</div>
+                    </div>
+                    </div>
+                    <div className="Tournament1 w-96 h-14 left-[25px] top-[68px] absolute">
+                    <div className="PlayerCount h-10 left-[929px] top-[13px] absolute justify-start items-center gap-0.5 inline-flex">
+                        <img className="Tournament1PlayerImage w-10 h-10" src="https://via.placeholder.com/40x40" />
+                        <div className="Tournament1Numentrants text-black text-2xl font-medium font-['Inter'] leading-9">45</div>
+                    </div>
+                    <div className="Tournament1Date h-9 left-[763px] top-[13px] absolute justify-start items-start gap-3 inline-flex">
+                        <img className="Tournament1DateImage w-7 h-8" src="https://via.placeholder.com/30x33" />
+                        <div className="Tournament1Date text-black text-2xl font-medium font-['Inter'] leading-9">05/20/24</div>
+                    </div>
+                    <div className="IconAndName h-14 left-0 top-0 absolute justify-start items-center gap-6 inline-flex">
+                        <img className="Tournament1Icon w-14 h-14 rounded-3xl" src="https://via.placeholder.com/60x60" />
+                        <div className="Tournament1Name text-center text-black text-3xl font-medium font-['Inter'] leading-10">Fusion #205</div>
+                    </div>
+                </div>
+                </div>
+                <div className="Results w-52 left-[620px] top-[400px] absolute text-center text-black text-4xl font-medium font-['Inter'] leading-10">Results</div>
+                <div className="Rectangle3 w-96 h-14 left-[157px] top-[330px] absolute bg-zinc-300/60 shadow border-4 border-black" />
+                <SeasonInfo/>
+                <div className="LeagueName left-[580px] top-[150px] absolute text-center text-black text-6xl font-medium font-['Inter'] leading-10">NJ Ultimate</div>
                 <div className="sort-options">
                     <label>Sort by: </label>
                     <select onChange={(e) => setSortKey(e.target.value)} value={sortKey}>
@@ -187,7 +254,7 @@ const TournamentSearchSeason = () => {
                         <option value="startAt">Latest Date</option>
                     </select>
                 </div>
-                <form onSubmit={handleSubmit}>
+                {/* <form onSubmit={handleSubmit}>
                     <input
                         type="text"
                         placeholder="Search for a tournament"
@@ -221,7 +288,7 @@ const TournamentSearchSeason = () => {
                         setPerPage(newPerPage);
                         setCurrentPage(1);
                     }}
-                />
+                /> */}
             </main>
         </div>
     );
