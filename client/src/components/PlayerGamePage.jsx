@@ -212,6 +212,7 @@ const PlayerGamePage = () => {
         setFilteredTournaments(tournaments);
     }, [tournaments]);
 
+
     const seasonTournamentMapper = (tournament) => ({
         tournament: tournament.tournament,
         event: tournament.event,
@@ -252,8 +253,6 @@ const PlayerGamePage = () => {
         }
         const min = parseInt(minEntrants);
         const max = parseInt(maxEntrants);
-        console.log(min)
-        console.log(max)
         let minB, maxB 
         let filter2 = tournaments.filter(tournament => {
             const entrants = tournament.event.entrants;
@@ -317,11 +316,18 @@ const PlayerGamePage = () => {
                 break;
         }
         if (filterTournamentsQuery !== '') {
-            return sortLev2(brackets, filterTournamentsQuery, 'tournamentName');
-        } else {
-            return brackets;
+            brackets = sortLev2(brackets, filterTournamentsQuery, 'tournamentName');
+        }   
+        if (brackets.length === 0){
+            setCurrentPage(0)
+            return [];
         }
-    }, [filteredTournaments, filterTournamentsQuery, sortKey]);
+        let totalPages = Math.ceil(brackets.length / perPage);
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+        return brackets
+    }, [filteredTournaments, filterTournamentsQuery, sortKey, currentPage, perPage]);
 
     let sortedOpponents = useMemo(() => {
         if (!game) return [];
@@ -411,9 +417,11 @@ const PlayerGamePage = () => {
     let filteredTournaments2 = sortedTournaments.filter(tournament =>
         tournament.tournament.tournamentName.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
     if (!player || !game || !sortedTournaments || !characters || !gameData) {
         return <div>Loading...</div>;
     }
+    
     const startIndex = (currentPage - 1) * perPage;
     const endIndex = startIndex + perPage;
     const startIndex2 = (currentPage2 - 1) * perPage2;

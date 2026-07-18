@@ -34,11 +34,11 @@ const createNewTournament = async (eventId, placement, playerId) => {
     let event = data.event
     let banner = "N/A"
     let pfp = "N/A"
-    for (const image of event.tournament.images){
-        if(image.type === 'banner'){
+    for (const image of event.tournament.images) {
+        if (image.type === 'banner') {
             pfp = image.url
         }
-        else if(image.type === 'profile'){
+        else if (image.type === 'profile') {
             banner = image.url
         }
     }
@@ -278,7 +278,7 @@ const setsRequest = async (playerId, videogameId) => {
             await new Promise(r => setTimeout(r, 60000));
         }
         await new Promise(r => setTimeout(r, 20000));
-    } while (page !== 10)
+    } while (page !== 20)
     player.games[gameIndex].lastRecordedSet = newLastRecordedSet
     await editPlayer(playerId, player)
     return "success"
@@ -945,7 +945,69 @@ const getTournamentsBySeason = async (regionId, seasonName) => {
 
 const do_elo = (h2h) => {
     for (let player in h2h) {
-        h2h[player].elo = 1500
+        if (h2h[player].id === 1216463) { //syrup
+            h2h[player].elo = 1692.43
+        }
+        else if (h2h[player].id === 231113) { //jakal
+            h2h[player].elo = 1654.61
+        }
+        else if (h2h[player].id === 15768) { //tweek
+            h2h[player].elo = 1642.79
+        }
+        // else if (h2h[player].id === 54394){ //sumgai
+
+        // }
+        // else if (h2h[player].id === 147246){ //leon
+
+        // }
+        else if (h2h[player].id === 1071129) { //pharaoh
+            h2h[player].elo = 1434.13
+        }
+        else if (h2h[player].id === 1224902) { //webbjp
+            h2h[player].elo = 1525.37
+        }
+        else if (h2h[player].id === 1064188) { //yeast
+            h2h[player].elo = 1337.83
+        }
+        else if (h2h[player].id === 1760115) { //synnister
+            h2h[player].elo = 1577.39
+        }
+        else if (h2h[player].id === 1797847){ //thugz
+            h2h[player].elo = 1347.72
+        }
+        // else if (h2h[player].id === 1605499){ //luigikid
+
+        // }
+        else if (h2h[player].id === 467656) { //fawn
+            h2h[player].elo = 1621.35
+        }
+        else if (h2h[player].id === 2220603) { //fhantum
+            h2h[player].elo = 1686.16
+        }
+        else if (h2h[player].id === 1931564) { //petayaa
+            h2h[player].elo = 1487.57
+        }
+        else if (h2h[player].id === 616232) { //beatybean
+            h2h[player].elo = 1400.26
+        }
+        else if (h2h[player].id === 1463554) { //smashbros!
+            h2h[player].elo = 1494.9
+        }
+        else if (h2h[player].id === 662541) { //Deltaforce
+            h2h[player].elo = 1448.9
+        }
+        else if (h2h[player].id === 551860) { //noodl
+            h2h[player].elo = 1392.33
+        }
+        else if (h2h[player].id === 551860) { //a9
+            h2h[player].elo = 1611.23
+        }
+        else if (h2h[player].id === 1769202){ //aquaze
+            h2h[player].elo = 1535.75
+        }
+        else {
+            h2h[player].elo = 1500
+        }
     }
     function Probability(rating1, rating2) {
         return (
@@ -986,13 +1048,13 @@ const do_elo = (h2h) => {
 }
 
 const do_glicko2 = (h2h) => {
-    function convert(player){
+    function convert(player) {
         player.rating = (player.rating - 1500.0) / 173.7178
-        player.deviation = player.deviation /173.7178
+        player.deviation = player.deviation / 173.7178
     }
-    function unconvert(player){
-        player.rating = (player.rating*173.7178)+1500
-        player.deviation = player.deviation*173.7178
+    function unconvert(player) {
+        player.rating = (player.rating * 173.7178) + 1500
+        player.deviation = player.deviation * 173.7178
     }
     function G(p) {
         const scale = p / Math.PI
@@ -1022,7 +1084,7 @@ const do_glicko2 = (h2h) => {
         const sPrime = Math.pow(Math.E, (Convergence(d, v, player.deviation, player.volatility) / 2.0))
         const pPrime = 1.0 / Math.pow(((1.0 / (player.deviation * player.deviation + sPrime * sPrime)) + invV), 0.5);
         const uPrime = player.rating + pPrime * pPrime * dInner;
-        return {uPrime, pPrime, sPrime}
+        return { uPrime, pPrime, sPrime }
     }
     function decay(p, s) {
         const pPrime = Math.pow((p * p + s * s), 0.5);
@@ -1047,8 +1109,7 @@ const do_glicko2 = (h2h) => {
         }
         let fA = F(A, dS, pS, v, a, tS);
         let fB = F(B, dS, pS, v, a, tS);
-        while (Math.abs(B - A) >  0.000001)
-        {
+        while (Math.abs(B - A) > 0.000001) {
             let C = A + (A - B) * fA / (fB - fA);
             let fC = F(C, dS, pS, v, a, tS);
 
@@ -1066,8 +1127,104 @@ const do_glicko2 = (h2h) => {
         return A;
     }
     for (let player in h2h) {
-        h2h[player].rating = 0
-        h2h[player].deviation = 350/173.7178
+        // if (h2h[player].id === 1216463) { //syrup
+        //     h2h[player].rating = 1835.63
+        //     h2h[player].deviation = 99.60
+        //     convert(h2h[player])
+        // }
+        // else if (h2h[player].id === 231113) { //jakal
+        //     h2h[player].rating = 1621.79
+        //     h2h[player].deviation = 73.36
+        //     convert(h2h[player])
+        // }
+        // else if (h2h[player].id === 15768) { //tweek
+        //     h2h[player].rating = 1951.68
+        //     h2h[player].deviation = 145.33
+        //     convert(h2h[player])
+        // }
+        // else if (h2h[player].id === 54394){ //sumgai
+
+        // }
+        // else if (h2h[player].id === 147246){ //leon
+
+        // }
+        // else if (h2h[player].id === 1071129) { //pharaoh
+        //     h2h[player].rating = 1241.59
+        //     h2h[player].deviation = 276.71
+        //     convert(h2h[player])
+        // }
+        // else if (h2h[player].id === 1224902) { //webbjp
+        //     h2h[player].rating = 1495.68
+        //     h2h[player].deviation = 127.98
+        //     convert(h2h[player])
+        // }
+        // else if (h2h[player].id === 1064188) { //yeast
+        //     h2h[player].rating = 1157.64
+        //     h2h[player].deviation = 81.94
+        //     convert(h2h[player])
+        // }
+        // else if (h2h[player].id === 1760115) { //synnister
+        //     h2h[player].rating = 1479.51
+        //     h2h[player].deviation = 69.27
+        //     convert(h2h[player])
+        // }
+        // else if (h2h[player].id === 1797847){ //thugz
+        //     h2h[player].rating = 1164.75
+        //     h2h[player].deviation = 82.72
+        //     convert(h2h[player])
+        // }
+        // // else if (h2h[player].id === 1605499){ //luigikid
+
+        // // }
+        // else if (h2h[player].id === 467656) { //fawn
+        //     h2h[player].rating = 1601.98
+        //     h2h[player].deviation = 79.38
+        //     convert(h2h[player])
+        // }
+        // else if (h2h[player].id === 2220603) { //fhantum
+        //     h2h[player].rating = 1614.67
+        //     h2h[player].deviation = 69.68
+        //     convert(h2h[player])
+        // }
+        // else if (h2h[player].id === 1931564) { //petayaa
+        //     h2h[player].rating = 1417.58
+        //     h2h[player].deviation = 134.22
+        //     convert(h2h[player])
+        // }
+        // else if (h2h[player].id === 616232) { //beatybean
+        //     h2h[player].rating = 1265.24
+        //     h2h[player].deviation = 275.07
+        //     convert(h2h[player])
+        // }
+        // else if (h2h[player].id === 1463554) { //smashbros!
+        //     h2h[player].rating = 1373.60
+        //     h2h[player].deviation = 150.38
+        //     convert(h2h[player])
+        // }
+        // else if (h2h[player].id === 662541) { //Deltaforce
+        //     h2h[player].rating = 1357.08
+        //     h2h[player].deviation = 264.59
+        //     convert(h2h[player])
+        // }
+        // else if (h2h[player].id === 551860) { //noodl
+        //     h2h[player].rating = 1211.99
+        //     h2h[player].deviation = 89.44
+        //     convert(h2h[player])
+        // }
+        // else if (h2h[player].id === 551860) { //a9
+        //     h2h[player].rating = 1544.04
+        //     h2h[player].deviation = 92.74
+        //     convert(h2h[player])
+        // }
+        // else if (h2h[player].id === 1769202){ //aquaze
+        //     h2h[player].rating = 1446.61
+        //     h2h[player].deviation = 89.94
+        //     convert(h2h[player])
+        // }
+        // else {
+            h2h[player].rating = 0
+            h2h[player].deviation = 350 / 173.7178
+        //}
         h2h[player].volatility = 0.06
     }
     for (let player in h2h) {
@@ -1105,8 +1262,8 @@ const do_glicko2 = (h2h) => {
         }
     }
     for (let player in h2h) {
-        h2h[player].rating = (h2h[player].rating*173.7178)+1500
-        h2h[player].deviation = h2h[player].deviation*173.7178
+        h2h[player].rating = (h2h[player].rating * 173.7178) + 1500
+        h2h[player].deviation = h2h[player].deviation * 173.7178
         h2h[player].volatility = 0.06
     }
     return h2h
