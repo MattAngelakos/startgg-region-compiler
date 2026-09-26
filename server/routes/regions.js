@@ -1,4 +1,5 @@
 import express from "express";
+import { getRegionSeasonSummaries } from '../data/summaries.js';
 import { getAllRegions, getRegion } from "../data/regions.js";
 import { getSeason } from "../data/seasons.js";
 import { do_elo, do_glicko2, do_h2h, finish_h2h, getEventResultsByRegion, getTournamentsBySeason, seasonFilter } from "../data/playerData.js";
@@ -50,6 +51,15 @@ router.get("/:regionId/seasons/:seasonName", async (req, res) => {
         res.status(500).json({
             error: error,
         });
+    }
+});
+
+router.get("/:regionId/seasons-summary", async (req, res) => {
+    try {
+        const summary = await getRegionSeasonSummaries(req.params.regionId);
+        res.status(200).json(summary);
+    } catch (error) {
+        res.status(500).json({ error: String(error) });
     }
 });
 

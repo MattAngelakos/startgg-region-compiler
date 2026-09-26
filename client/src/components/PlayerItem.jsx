@@ -2,22 +2,25 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import trophy from '../assets/trophy.png';
 
-const PlayerItem = ({ player, gameId }) => {
+const PlayerItem = ({ player, gameId, characterIcons }) => {
     let mostPlayed = 0
     let mostPlayedChar = "N/A"
-    let imageLink = 'N/A'
     for (const game of player.games) {
         if (game.gameId === gameId) {
             for(const character of game.characters){
                 if(character.numOfPlays > mostPlayed){
                     mostPlayedChar = character.characterName
                     mostPlayed = character.numOfPlays
-                    imageLink = character.imageLink
                 }
             }
             break;
         }
     }
+    // Player records store only a character name; the art lives on the game
+    // document, so the icon is looked up by name.
+    const icon = characterIcons && characterIcons[mostPlayedChar]
+        ? characterIcons[mostPlayedChar].stockIcon
+        : null
     return (
         <div className="player-item">
             <img src={player.pfp} alt={`${player.gamerTag} logo`} className="player-logo" />
@@ -30,7 +33,10 @@ const PlayerItem = ({ player, gameId }) => {
                         <img src={trophy} alt="Trophy Icon" className="trophy-icon" /> {player.tournaments}
                     </div>
                     <div className="player-character">
-                        <img src={imageLink} alt="Character Icon" className="character-icon" /> {mostPlayedChar}
+                        {icon && (
+                            <img src={icon} alt={mostPlayedChar} className="character-icon" />
+                        )}
+                        {mostPlayedChar}
                     </div>
                 </div>
             </div>

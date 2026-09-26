@@ -22,8 +22,8 @@ const TournamentFilter = ({ tournaments, filterh2h }) => {
     };
 
     return (
-        <div>
-            <button onClick={() => setDropdownVisible(!dropdownVisible)}>
+        <div className="filter-control">
+            <button className="button" onClick={() => setDropdownVisible(!dropdownVisible)}>
                 Select Tournaments
             </button>
             {dropdownVisible && (
@@ -39,7 +39,7 @@ const TournamentFilter = ({ tournaments, filterh2h }) => {
                             {tournament.nameOfBracket}
                         </label>
                     ))}
-                    <button onClick={handleSubmit}>Submit</button>
+                    <button className="button button-primary" onClick={handleSubmit}>Submit</button>
                 </div>
             )}
         </div>

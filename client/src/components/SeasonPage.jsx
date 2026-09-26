@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import LoadingScreen from './LoadingScreen';
 import { useParams } from 'react-router-dom';
 import Header from './Header';
 import Results from './Results';
@@ -8,78 +9,33 @@ import LinkButton from './LinkButton';
 const SeasonPage = () => {
     const { regionId, seasonName } = useParams();
     const [season, setSeason] = useState(null);
-    const [regions, setRegion] = useState(null)
+    const [region, setRegion] = useState(null);
+
     useEffect(() => {
-        const fetchRegionData = async () => {
+        // The summary already carries this season's counts, so there is no need
+        // to hydrate every player and every one of their tournaments here.
+        const fetchSeason = async () => {
             try {
-                let region
-                try {
-                    const response = await fetch(`/regions/${regionId}`);
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch region data');
-                    }
-                    const data = await response.json();
-                    region = data.region
-                } catch (error) {
-                    console.error('Error fetching region data:', error);
-                }
-                const response = await fetch(`/regions/${regionId}/seasons/${seasonName}`);
+                const response = await fetch(`/regions/${regionId}/seasons-summary`);
                 if (!response.ok) {
-                    throw new Error('Failed to fetch region data');
+                    throw new Error('Failed to fetch season summaries');
                 }
                 const data = await response.json();
-                let season = data[regionId]
-                season.gameId = region.gameId
-                try {
-                    const response = await fetch(`/regions/${regionId}/seasons/${season.seasonName}/players`);
-                    if (!response.ok) {
-                        throw new Error(`Failed to fetch players for season ${season.seasonName}`);
-                    }
-                    let playersData = await response.json();
-                    playersData.players = await Promise.all(
-                        playersData.players.map(async (player) => {
-                            try {
-                                const response = await fetch(`/regions/${regionId}/seasons/${season.seasonName}/players/${player._id}`);
-                                if (!response.ok) {
-                                    throw new Error(`Failed to fetch ${player._id} for season ${season.seasonName}`);
-                                }
-                                let playerData = await response.json();
-                                player = playerData.player
-                                for (const game of player.games) {
-                                    if (game.gameId === region.gameId) {
-                                        for (let tournament of game.tournaments) {
-                                            try {
-                                                const response = await fetch(`/tournaments/${tournament.tournamentId}`)
-                                                if (!response.ok) {
-                                                    throw new Error(`Failed to fetch tournament`);
-                                                }
-                                                const tournamentData = await response.json()
-                                                tournament.name = tournamentData.tournament.tournamentName
-                                            } catch (error) {
-                                                console.error(`Error fetching ${tournament.tournamentId}:`, error);
-                                            }
-                                        }
-                                    }
-                                }
-                                return player
-                            } catch (error) {
-                                console.error(`Error fetching ${player._id} for season ${season.seasonName}:`, error);
-                                return player
-                            }
-                        })
-                    )
-                    season.players = playersData.players
-                } catch (error) {
-                    console.error(`Error fetching players for season ${season.seasonName}:`, error);
+                const match = data.seasons.find(
+                    (s) => s.seasonName.toLowerCase() === seasonName.toLowerCase()
+                );
+                if (!match) {
+                    throw new Error(`season ${seasonName} not found`);
                 }
-                setRegion(region)
-                setSeason(season);
+                setRegion(data.region);
+                setSeason(match);
             } catch (error) {
                 console.error('Error fetching season data:', error);
             }
         };
-        fetchRegionData();
+        fetchSeason();
     }, [seasonName, regionId]);
+
     const seasonPropMapper = useCallback(
         (season) => ({
             _id: season.seasonName,
@@ -88,20 +44,25 @@ const SeasonPage = () => {
         }),
         [regionId]
     );
-    if (!season || !regions) {
-        return <div>Loading...</div>;
+
+    if (!season || !region) {
+        return <LoadingScreen label={"Loading season…"} rows={1} link={`/regions/${regionId}`} />;
     }
+
     return (
         <div className="app">
-            <Header link={`/regions/${regionId}`}linkname={regions.regionName}/>
+            <Header link={`/regions/${regionId}`} linkname={region.regionName} />
             <main>
-                <h1>League Detail for {regionId}</h1>
-                <Results items={[{ ...season, _id: season.seasonName }]} Component={SeasonItem} propMapper={seasonPropMapper} />
+                <h1>{region.regionName} &mdash; {season.seasonName}</h1>
+                <Results
+                    items={[{ ...season, _id: season.seasonName }]}
+                    Component={SeasonItem}
+                    propMapper={seasonPropMapper}
+                />
                 <div className="button-grid">
+                    <LinkButton to="/h2h-chart">H2H Chart</LinkButton>
                     <LinkButton to="/players">Search Players</LinkButton>
                     <LinkButton to="/tournaments">Search Tournaments</LinkButton>
-                    <LinkButton to="/h2h-chart">H2H Chart</LinkButton>
-                    <LinkButton to="/compare-players">Compare Players</LinkButton>
                 </div>
             </main>
         </div>

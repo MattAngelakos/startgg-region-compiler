@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import LoadingScreen from './LoadingScreen';
 import { useParams } from 'react-router-dom';
 import Header from './Header';
 import TournamentFilter from './TournamentFilter';
@@ -13,6 +14,7 @@ const HeadToHeadWrapper = () => {
     const [head2head, setHead2Head] = useState(null);
     const [originalH2H, setOriginalHead2Head] = useState(null);
     const [tournaments, setTournaments] = useState([]);
+    const [regionName, setRegionName] = useState('');
     const [sortKey, setSortKey] = useState("rating");
 
     useEffect(() => {
@@ -43,8 +45,22 @@ const HeadToHeadWrapper = () => {
             }
         };
 
+        const fetchRegionName = async () => {
+            try {
+                const response = await fetch(`/regions/${regionId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch region');
+                }
+                const data = await response.json();
+                setRegionName(data.region.regionName);
+            } catch (error) {
+                console.error('Error fetching region name:', error);
+            }
+        };
+
         fetchRegionData();
         fetchTournaments();
+        fetchRegionName();
     }, [regionId, seasonName]);
 
     const filterh2h = async (filteredTournaments) => {
@@ -144,25 +160,28 @@ const HeadToHeadWrapper = () => {
     };
 
     if (!head2head || tournaments.length === 0) {
-        return <div>Loading...</div>;
+        return <LoadingScreen label={"Building head-to-head chart…"} rows={5} link={`/regions/${regionId}/seasons/${seasonName}`} linkname={seasonName} />;
     }
 
     return (
         <div className="app">
             <Header link={`/regions/${regionId}/seasons/${seasonName}`} linkname={seasonName} />
             <main>
-                <button
-                    onClick={downloadExcel}
-                    className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-700 transition"
-                >
-                    Download Excel
-                </button>
-                <h1>League Head2Head Detail for {regionId}</h1>
-                <TournamentFilter
-                    tournaments={tournaments}
-                    filterh2h={filterh2h}
-                />
-                <PlayerFilter originalObject={head2head} originalH2H={originalH2H} />
+                <div className="page-heading">
+                    <h1>{regionName ? `${regionName} - ${seasonName}` : seasonName} Head to Head</h1>
+                    {/* These utility classes came from Tailwind, which the app
+                        does not load, so the button rendered unstyled. */}
+                    <button onClick={downloadExcel} className="button button-primary">
+                        Download Excel
+                    </button>
+                </div>
+                <div className="chart-controls">
+                    <TournamentFilter
+                        tournaments={tournaments}
+                        filterh2h={filterh2h}
+                    />
+                    <PlayerFilter originalObject={head2head} originalH2H={originalH2H} />
+                </div>
             </main>
         </div>
     );

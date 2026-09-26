@@ -1,0 +1,4 @@
+# Saved-page export of the built app — webpack bundle and its assets.
+# Build output, not authored source, so keep it out of Linguist's language stats.
+"React App_files/**" linguist-vendored
+"React App.html" linguist-vendored

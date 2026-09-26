@@ -100,20 +100,113 @@ fieldset{
   cursor: default;
 }
 
+/* Scroll container. The table is wide data, so it scrolls in both directions
+   inside this box; previously a pan/zoom wrapper sized itself to the content,
+   which pushed the entire page sideways and clipped what it could not fit. */
+.chart-scroll {
+  overflow: auto;
+  max-width: 100%;
+  max-height: 78vh;
+  background: #fff;
+  border: 1px solid #e2e5ea;
+  border-radius: 10px;
+  overscroll-behavior: contain;
+}
+
 .head-to-head-table {
-  width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #fff;
+  font-size: inherit;
 }
 
 .head-to-head-table th,
 .head-to-head-table td {
-  padding: 8px;
+  padding: 8px 10px;
   text-align: center;
   white-space: nowrap; /* Prevent text wrapping */
+  border-bottom: 1px solid #edeff2;
+  border-right: 1px solid #edeff2;
+}
+
+.head-to-head-table tr:last-child th,
+.head-to-head-table tr:last-child td {
+  border-bottom: none;
+}
+
+.head-to-head-table th:last-child,
+.head-to-head-table td:last-child {
+  border-right: none;
 }
 
 .head-to-head-table th {
-  background-color: #f4f4f4;
+  background-color: #f4f6f8;
+  font-weight: 600;
+  color: #1b1f24;
+}
+
+/* Column headers read vertically so a 23-player matrix stays narrow enough to
+   scan without panning across the whole board. */
+.head-to-head-table thead th {
+  vertical-align: bottom;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+/* The row header column stays put while scrolling sideways, and the top-left
+   corner has to outrank both so it is never overlapped. */
+.head-to-head-table .row-header {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+}
+
+.head-to-head-table .corner-header {
+  position: sticky;
+  left: 0;
+  top: 0;
+  z-index: 4;
+}
+
+.head-to-head-table thead th:not(:first-child) {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  text-align: left;
+  padding: 10px 6px;
+  max-height: 170px;
+}
+
+/* Row header: the player name plus their Elo/Glicko2 line. */
+.head-to-head-table tbody th {
+  text-align: left;
+  background-color: #fafbfc;
+  border-right: 2px solid #e2e5ea;
+}
+
+.head-to-head-table tbody th button {
+  display: block;
+  width: 100%;
+  cursor: pointer;
+  font-weight: 600;
+  color: #1b1f24;
+  text-align: left;
+  line-height: 1.35;
+}
+
+.head-to-head-table tbody th button:hover {
+  color: #34793a;
+}
+
+.head-to-head-table tbody th button div {
+  font-weight: 400;
+  font-size: 0.74rem;
+  color: #667085;
+}
+
+/* Diagonal / self cell. */
+.head-to-head-table .black-cell {
+  background-color: #2b3038;
 }
 
 .green-cell {
@@ -122,10 +215,6 @@ fieldset{
 
 .dark-green-cell {
   background-color: #006400; 
-}
-
-.black-cell {
-  background-color: #000000; 
 }
 
 .yellow-cell {
@@ -163,12 +252,20 @@ fieldset{
 }
 
 .PopoverContent {
-  padding: 20px;
+  /* The record list can run to 20+ rows, which used to overflow off the top of
+     the screen. Radix reports how much room it has; cap to that and scroll. */
+  max-height: var(--radix-popover-content-available-height, 70vh);
+  overflow-y: auto;
+  padding: 14px 16px;
   background: white;
-  border: 1px solid black;
-  border-radius: 4px;
-  box-shadow: 0px 10px 15px rgba(0, 0, 0, 0.1);
-  width: 100%;
+  border: 1px solid #cbd1d9;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(16, 24, 40, 0.16);
+  /* was width:100%, which stretched it to the positioning context rather than
+     sizing to the record list */
+  width: max-content;
+  min-width: 220px;
+  max-width: 320px;
 }
 
 .PopoverContent:focus {
@@ -327,4 +424,13 @@ fieldset{
     opacity: 1;
     transform: translateX(0);
   }
+}
+
+/* Header for the per-player record popover. */
+.popover-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid #e2e5ea;
 }

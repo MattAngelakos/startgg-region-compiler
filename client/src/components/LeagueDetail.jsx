@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import LoadingScreen from './LoadingScreen';
 import { useParams } from 'react-router-dom';
 import Header from './Header';
 import SearchBar from './SearchBar';
@@ -9,6 +10,7 @@ import SeasonItem from './SeasonItem';
 const LeagueDetail = () => {
     const { regionId } = useParams();
     const [region, setRegion] = useState(null);
+    const [seasons, setSeasons] = useState([]);
     const [playersQuery, setPlayersQuery] = useState('');
     const [tournamentsQuery, setTournamentsQuery] = useState('');
     const [filterPlayersQuery, setFilterPlayersQuery] = useState('');
@@ -24,103 +26,48 @@ const LeagueDetail = () => {
         setFilterTournamentsQuery(tournamentsQuery);
         sendSetStartDate(startDate);
         sendSetEndDate(endDate);
-        console.log('Search Players:', playersQuery);
-        console.log('Search Tournaments:', tournamentsQuery);
-        console.log('Selected Date Range:', { startDate, endDate });
     };
 
     useEffect(() => {
-        const fetchRegionData = async () => {
+        // One request for the whole page. This used to walk every season, then
+        // every player in it, then every tournament of every player, which ran
+        // into the thousands of round trips and stalled before rendering.
+        const fetchSummary = async () => {
             try {
-                const response = await fetch(`/regions/${regionId}`);
+                const response = await fetch(`/regions/${regionId}/seasons-summary`);
                 if (!response.ok) {
-                    throw new Error('Failed to fetch region data');
+                    throw new Error('Failed to fetch season summaries');
                 }
                 const data = await response.json();
-                const updatedSeasons = await Promise.all(
-                    data.region.seasons.map(async (season) => {
-                        try {
-                            season.gameId = data.region.gameId
-                            const response = await fetch(`/regions/${regionId}/seasons/${season.seasonName}/players`);
-                            if (!response.ok) {
-                                throw new Error(`Failed to fetch players for season ${season.seasonName}`);
-                            }
-                            let playersData = await response.json();
-                            playersData.players = await Promise.all(
-                                playersData.players.map(async (player) => {
-                                    try{
-                                        const response = await fetch(`/regions/${regionId}/seasons/${season.seasonName}/players/${player._id}`);
-                                        if (!response.ok) {
-                                            throw new Error(`Failed to fetch ${player._id} for season ${season.seasonName}`);
-                                        }
-                                        let playerData = await response.json();
-                                        player = playerData.player
-                                        for(const game of player.games){
-                                            if(game.gameId === data.region.gameId){
-                                                for(const tournament of game.tournaments){
-                                                    try{
-                                                        const response = await fetch(`/tournaments/${tournament.tournamentId}`)
-                                                        if (!response.ok) {
-                                                            throw new Error(`Failed to fetch tournament`);
-                                                        }
-                                                        const tournamentData = await response.json()
-                                                        tournament.name = tournamentData.tournament.tournamentName
-                                                    }catch(error){
-                                                        console.error(`Error fetching ${tournament.tournamentId}:`, error);   
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        return player
-                                    }catch (error) {
-                                        console.error(`Error fetching ${player._id} for season ${season.seasonName}:`, error);
-                                        return player
-                                    }
-                                })
-                            )
-                            return { ...season, players: playersData.players };
-                        } catch (error) {
-                            console.error(`Error fetching players for season ${season.seasonName}:`, error);
-                            return { ...season, players: [] };
-                        }
-                    })
-                );
-                setRegion({ ...data.region, seasons: updatedSeasons });
+                setRegion(data.region);
+                setSeasons(data.seasons);
             } catch (error) {
-                console.error('Error fetching region data:', error);
+                console.error('Error fetching season summaries:', error);
             }
         };
-        fetchRegionData();
+        fetchSummary();
     }, [regionId]);
-    
+
     const filteredSeasons = useMemo(() => {
-        if (!region) return [];
-        return region.seasons.filter((season) => {
-            const matchesPlayersQuery = filterPlayersQuery
-                ? season.players.some(player => player.gamerTag.toLowerCase().includes(filterPlayersQuery.toLowerCase()))
+        const contains = (values, query) =>
+            values.some((value) => value.toLowerCase().includes(query.toLowerCase()));
+
+        return seasons.filter((season) => {
+            const matchesPlayers = filterPlayersQuery
+                ? contains(season.playerTags, filterPlayersQuery)
                 : true;
-            let matchesTournamentQuery = filterTournamentsQuery ? false : true
-            if(!matchesTournamentQuery){
-                for(const player of season.players){
-                    for(const game of player.games){
-                        if(game.gameId === season.gameId){
-                            matchesTournamentQuery = game.tournaments.some(tournament => tournament.name.toLowerCase().includes(filterTournamentsQuery.toLowerCase()))
-                            break
-                        }
-                    }
-                    if(matchesTournamentQuery){
-                        break
-                    }
-                }
-            }
-            const matchesStartQuery = sendStartDate ? ((Math.floor(sendStartDate / 1000)) <= season.startDate) : true
-            const matchesEndQuery = sendEndDate ? ((Math.floor(sendEndDate / 1000)) >= season.endDate) : true
-            return matchesPlayersQuery && matchesStartQuery && matchesEndQuery && matchesTournamentQuery;
-        }).map((season) => ({
-            ...season,
-            _id: season.seasonName,
-        }));
-    }, [region, filterPlayersQuery, filterTournamentsQuery, sendStartDate, sendEndDate]);
+            const matchesTournaments = filterTournamentsQuery
+                ? contains(season.tournamentNames, filterTournamentsQuery)
+                : true;
+            const matchesStart = sendStartDate
+                ? Math.floor(sendStartDate / 1000) <= season.startDate
+                : true;
+            const matchesEnd = sendEndDate
+                ? Math.floor(sendEndDate / 1000) >= season.endDate
+                : true;
+            return matchesPlayers && matchesTournaments && matchesStart && matchesEnd;
+        }).map((season) => ({ ...season, _id: season.seasonName }));
+    }, [seasons, filterPlayersQuery, filterTournamentsQuery, sendStartDate, sendEndDate]);
 
     const seasonPropMapper = useCallback(
         (season) => ({
@@ -129,12 +76,14 @@ const LeagueDetail = () => {
         }),
         [regionId]
     );
+
     if (!region) {
-        return <div>Loading...</div>;
+        return <LoadingScreen label={"Loading seasons…"} rows={5} link={`/regions`} linkname={'Region'} />;
     }
+
     return (
         <div className="app">
-            <Header link={`/regions`}linkname={'Region'}/>
+            <Header link={`/regions`} linkname={'Region'} />
             <main>
                 <form onSubmit={handleSubmit}>
                     <SearchBar query={playersQuery} setQuery={setPlayersQuery} searchWord="Players" />
@@ -147,7 +96,7 @@ const LeagueDetail = () => {
                     />
                     <button type="submit">Search</button>
                 </form>
-                <h1>League Detail for {regionId}</h1>
+                <h1>{region.regionName} Seasons</h1>
                 <Results items={filteredSeasons} Component={SeasonItem} propMapper={seasonPropMapper} />
             </main>
         </div>

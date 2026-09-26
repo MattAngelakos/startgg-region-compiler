@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import LoadingScreen from './LoadingScreen';
 import Header from './Header';
 import SearchBar from './SearchBar';
 import GameFilter from './GameFilter';
@@ -31,7 +32,7 @@ const LeaguePage = () => {
     }, []);
 
     if (!leagues) {
-        return <div>Loading...</div>;
+        return <LoadingScreen label={"Loading regions…"} rows={3} />;
     }
 
     const filteredLeagues = sortLev(leagues, searchQuery, 'regionName');

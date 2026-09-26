@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import LoadingScreen from './LoadingScreen';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Header from './Header';
 import Results from './Results';
@@ -8,6 +9,7 @@ import { sortLev2 } from '../helpers';
 
 const TournamentSearchSeason = () => {
     const { regionId, seasonName } = useParams();
+    const [regionName, setRegionName] = useState('');
     const [tournaments, setTournaments] = useState([]);
     const [tournamentsQuery] = useState('');
     const [filterTournamentsQuery, setFilterTournamentsQuery] = useState('');
@@ -47,6 +49,7 @@ const TournamentSearchSeason = () => {
                     }
                     const data = await response.json();
                     region = data.region;
+                    setRegionName(region.regionName);
                 } catch (error) {
                     console.error('Error fetching region data:', error);
                 }
@@ -121,7 +124,9 @@ const TournamentSearchSeason = () => {
     }, [seasonName, regionId]);
 
     const seasonTournamentMapper = (tournament) => ({
-        _id: tournament.tournament._id,
+        // Keyed by event, not tournament: one tournament can contribute several
+        // events, which collided on the same React key.
+        _id: tournament.event.eventId,
         tournament: tournament.tournament,
         event: tournament.event,
     });
@@ -160,7 +165,7 @@ const TournamentSearchSeason = () => {
     }, [tournaments, filterTournamentsQuery, sortKey]);
 
     if (!filteredTournaments) {
-        return <div>Loading...</div>;
+        return <LoadingScreen label={"Loading tournaments…"} rows={6} />;
     }
 
     let filteredTournaments2 = filteredTournaments.filter(tournament =>
@@ -175,7 +180,7 @@ const TournamentSearchSeason = () => {
         <div className="app">
             <Header link={`/regions/${regionId}/seasons/${seasonName}`}linkname={seasonName}/>
             <main>
-                <h1>League Detail for {regionId}</h1>
+                <h1>{regionName ? `${regionName} - ${seasonName}` : seasonName} Tournaments</h1>
                 <div className="sort-options">
                     <label>Sort by: </label>
                     <select onChange={(e) => setSortKey(e.target.value)} value={sortKey}>

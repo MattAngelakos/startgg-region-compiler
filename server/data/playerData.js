@@ -59,19 +59,86 @@ const createNewTournament = async (eventId, placement, playerId) => {
     return newTournament
 }
 
-const setsRequest = async (playerId, videogameId) => {
+// Stored gamerTags go stale as players rename themselves. The tag inside a set's
+// participants is the tag used at that event, so a fresh player lookup is the
+// only way to get the current one.
+const refreshGamerTag = async (playerId) => {
+    const query = `
+    query Tag($id: ID!) {
+        player(id: $id) {
+            gamerTag
+            user {
+                images {
+                    type
+                    url
+                }
+            }
+        }
+    }
+    `
+    const response = await doRequest(query, playerId, 0, 0, 0, 0)
+    const live = response.data && response.data.player
+    if (!live || !live.gamerTag) return null
+
+    const player = await getPlayer(playerId)
+    const previousTag = player.gamerTag
+    let pfp = player.pfp
+    if (live.user && live.user.images) {
+        for (const image of live.user.images) {
+            if (image.type === 'profile') pfp = image.url
+        }
+    }
+    const tagChanged = live.gamerTag !== previousTag
+    const pfpChanged = pfp !== player.pfp
+    if (!tagChanged && !pfpChanged) return null
+
+    player.gamerTag = live.gamerTag
+    player.pfp = pfp
+    await editPlayer(playerId, player)
+    return {
+        playerId: playerId,
+        from: previousTag,
+        to: live.gamerTag,
+        tagChanged: tagChanged,
+        pfpChanged: pfpChanged
+    }
+}
+
+const setsRequest = async (playerId, videogameId, options = {}) => {
+    // since:     only ask for sets created/updated after this unix timestamp.
+    //            Pass a season start and the API does the date filtering for us
+    //            instead of us paging through a player's whole career.
+    // maxPages:  hard ceiling so a first-ever sync can't run away.
+    // perPage:   25 by default; 30 is the hard ceiling the 1000-object
+    //            complexity cap allows for this query shape, and the page size
+    //            is halved automatically if a page still overshoots.
+    const since = options.since ?? 0
+    const maxPages = options.maxPages ?? 20
+    let perPage = options.perPage ?? 25
+    // A full resync has to walk past the watermark, otherwise it stops at the
+    // newest set already on file and re-reads nothing.
+    const ignoreWatermark = options.ignoreWatermark === true
+
     let player = await getPlayer(playerId)
     const gameIndex = await getGameFromPlayer(playerId, videogameId)
+    const previous = player.games[gameIndex].lastRecordedSet
+    const lastRecordedId = !ignoreWatermark && previous && previous.id ? previous.id : null
     let page = 1
     let sets = []
-    let setsLen = []
     let i = true
     let newLastRecordedSet
+    let reachedKnownSet = false
+    let totalPages = null
+    let processed = 0
+    let pagesFetched = 0
     do {
         const query = `
-        query Sets($id: ID!, $limit: Int!, $page: Int!) {
+        query Sets($id: ID!, $limit: Int!, $page: Int!, $updatedAfter: Timestamp!) {
             player(id: $id) {
-                sets(perPage: $limit, page: $page) {
+                sets(perPage: $limit, page: $page, filters: {updatedAfter: $updatedAfter}) {
+                    pageInfo {
+                        totalPages
+                    }
                     nodes {
                         slots {
                             entrant {
@@ -121,10 +188,29 @@ const setsRequest = async (playerId, videogameId) => {
             }
         }
         `;
-        const response = await doRequest(query, playerId, videogameId, 20, 0, page)
+        let response
+        try {
+            response = await doRequest(query, playerId, videogameId, perPage, since, page)
+        } catch (e) {
+            // A page of unusually long sets can blow the object cap; halve the
+            // page size and retry the same page rather than losing it.
+            if (e.name === 'ComplexityError' && perPage > 5) {
+                perPage = Math.max(5, Math.floor(perPage / 2))
+                console.warn(`complexity cap hit, retrying page ${page} at perPage ${perPage}`)
+                continue
+            }
+            throw e
+        }
         const data = response.data
-        setsLen = data.player.sets.nodes
+        if (!data || !data.player || !data.player.sets) {
+            break
+        }
+        pagesFetched = pagesFetched + 1
+        totalPages = data.player.sets.pageInfo.totalPages
         sets = data.player.sets.nodes
+        if (sets.length === 0) {
+            break
+        }
         let placement, tournament, entrantId
         sets = sets.filter(set => set.event !== null);
         sets = sets.filter(set => set.event.type === 1)
@@ -135,8 +221,12 @@ const setsRequest = async (playerId, videogameId) => {
         for (const set of sets) {
             try {
                 player = await getPlayer(playerId)
-                if (set === player.games[gameIndex].lastRecordedSet) {
-                    return
+                // Compare by set id: the stored set is a separate object from
+                // the freshly fetched one, so `===` was never true here and
+                // every sync re-walked sets that were already recorded.
+                if (lastRecordedId !== null && set.id === lastRecordedId) {
+                    reachedKnownSet = true
+                    break
                 }
                 if (i) {
                     newLastRecordedSet = set
@@ -190,11 +280,10 @@ const setsRequest = async (playerId, videogameId) => {
                         await createPlayerWin(playerId, videogameId, set.event.tournament.id, set.event.id, opponentName, opponentId, set.id)
                     }
                     catch (e) {
-                        console.log(e)
                         winIndex = await getPlayerWin(playerId, videogameId, opponentId)
                         const setIndex = player.games[gameIndex].opponents[winIndex].tournaments.findIndex(win => win.setId === set.id)
                         if (setIndex !== -1) {
-                            throw `win with setId ${setId} already exists`
+                            throw `win with setId ${set.id} already exists`
                         }
                         player.games[gameIndex].opponents[winIndex].tournaments.push({ setId: set.id, tournamentId: set.event.tournament.id, eventId: set.event.id, type: 'win', matches: [] })
                         await editPlayerWin(playerId, videogameId, opponentId, { tournaments: player.games[gameIndex].opponents[winIndex].tournaments })
@@ -208,7 +297,7 @@ const setsRequest = async (playerId, videogameId) => {
                         lossIndex = await getPlayerLoss(playerId, videogameId, opponentId)
                         const setIndex = player.games[gameIndex].opponents[lossIndex].tournaments.findIndex(win => win.setId === set.id)
                         if (setIndex !== -1) {
-                            throw `loss with setId ${setId} already exists`
+                            throw `loss with setId ${set.id} already exists`
                         }
                         player.games[gameIndex].opponents[lossIndex].tournaments.push({ setId: set.id, tournamentId: set.event.tournament.id, eventId: set.event.id, type: 'loss', matches: [] })
                         await editPlayerLoss(playerId, videogameId, opponentId, { tournaments: player.games[gameIndex].opponents[lossIndex].tournaments })
@@ -246,13 +335,17 @@ const setsRequest = async (playerId, videogameId) => {
                         } catch (e) {
                             stage = "N/A"
                         }
-                        if (playerChar === null) {
+                        // `== null` on purpose: these are declared outside the
+                        // per-game loop, so a game that reports only one side's
+                        // character leaves the other undefined, not null, and
+                        // the strict check let it through to fail validation.
+                        if (playerChar == null) {
                             playerChar = "N/A"
                         }
-                        if (opponentChar === null) {
+                        if (opponentChar == null) {
                             opponentChar = "N/A"
                         }
-                        if (stage === null) {
+                        if (stage == null) {
                             stage = "N/A"
                         }
                         try {
@@ -273,15 +366,24 @@ const setsRequest = async (playerId, videogameId) => {
                 console.error(e)
             }
         }
-        page = page + 1
-        if (page % 15 === 0) {
-            await new Promise(r => setTimeout(r, 60000));
+        processed = processed + sets.length
+        if (reachedKnownSet) {
+            break
         }
-        await new Promise(r => setTimeout(r, 20000));
-    } while (page !== 20)
-    player.games[gameIndex].lastRecordedSet = newLastRecordedSet
-    await editPlayer(playerId, player)
-    return "success"
+        page = page + 1
+        // Pacing is handled centrally by the rate limiter in startgg.js, so no
+        // blind sleeps are needed here.
+    } while (page <= maxPages && (totalPages === null || page <= totalPages))
+
+    // Save the watermark even when we stopped early on a known set, otherwise
+    // the next run starts from the same stale point and re-reads everything.
+    if (newLastRecordedSet) {
+        player = await getPlayer(playerId)
+        player.games[gameIndex].lastRecordedSet = newLastRecordedSet
+        player.games[gameIndex].lastSyncedAt = Math.floor(Date.now() / 1000)
+        await editPlayer(playerId, player)
+    }
+    return `success (${processed} sets scanned over ${pagesFetched} page(s)${reachedKnownSet ? ', stopped at last recorded set' : ''})`
 }
 
 const seasonFilter = async (regionId, seasonName, playerId) => {
@@ -1271,6 +1373,7 @@ const do_glicko2 = (h2h) => {
 
 
 export {
+    refreshGamerTag,
     setsRequest,
     getTournamentsBySeason,
     do_h2h,

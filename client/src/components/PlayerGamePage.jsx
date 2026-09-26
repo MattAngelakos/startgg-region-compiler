@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import LoadingScreen from './LoadingScreen';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Header from './Header';
 import Results from './Results';
@@ -11,6 +12,83 @@ import CharacterRender from './CharacterRender';
 import * as Checkbox from '@radix-ui/react-checkbox';
 import { CheckIcon } from '@radix-ui/react-icons';
 import DateRangePicker from './DateRangePicker';
+
+// These are pure: they take everything they need as arguments and touch no
+// props or state. Kept at module scope so they are stable references and the
+// effects below can declare honest dependency arrays.
+const fetchData = async (url) => {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Failed to fetch data from ${url}`);
+    return response.json();
+};
+
+const addTournamentNames = (tournaments, brackets) => {
+    return tournaments.map(tournament => {
+        const bracket = brackets.find(bracket =>
+            bracket.tournament._id === tournament.tournamentId &&
+            bracket.event.eventId === tournament.eventId
+        );
+        return {
+            ...tournament,
+            tournamentName: bracket ? `${bracket.tournament.tournamentName}: ${bracket.event.eventName}` : 'Unknown Tournament',
+            startAt: bracket ? bracket.event.startAt : -1
+        };
+    });
+};
+
+const aggregateCharacterData = (opponents) => {
+    let playerCharacters = {};
+    opponents.forEach(opponent => {
+        opponent.tournaments.forEach(tournament => {
+            tournament.matches.forEach(match => {
+                updateCharacterData(playerCharacters, match);
+            });
+        });
+    });
+    return playerCharacters;
+};
+
+const updateCharacterData = (playerCharacters, match) => {
+    if (!playerCharacters.hasOwnProperty(match.playerChar)) {
+        playerCharacters[match.playerChar] = { plays: 0, winrate: 0, stages: {} };
+    }
+    const playerChar = playerCharacters[match.playerChar];
+    playerChar.plays += 1;
+    updateMatchData(playerChar, match);
+    if (match.stage !== "N/A") {
+        if (!playerChar.stages.hasOwnProperty(match.stage)) {
+            playerChar.stages[match.stage] = { plays: 0, winrate: 0 };
+        }
+        const stage = playerChar.stages[match.stage];
+        stage.plays += 1;
+        updateMatchData(playerChar, match, true);
+        updateMatchData(stage, match);
+    }
+};
+
+const updateMatchData = (charData, match, stage) => {
+    let opponentChar
+    if (stage) {
+        opponentChar = charData[match.opponentChar]['stages'][match.stage] || { plays: 0, winrate: 0 };
+    }
+    else {
+        opponentChar = charData[match.opponentChar] || { plays: 0, winrate: 0, stages: {} };
+    }
+    opponentChar.plays += 1;
+    if (stage) {
+        charData[match.opponentChar]['stages'][match.stage] = opponentChar
+    }
+    else {
+        charData[match.opponentChar] = opponentChar;
+    }
+    if (match.type === 'win') {
+        charData.winrate = ((charData.plays - 1) * charData.winrate + 1) / charData.plays;
+        opponentChar.winrate = ((opponentChar.plays - 1) * opponentChar.winrate + 1) / opponentChar.plays;
+    } else if (match.type === 'loss') {
+        charData.winrate = ((charData.plays - 1) * charData.winrate) / charData.plays;
+        opponentChar.winrate = ((opponentChar.plays - 1) * opponentChar.winrate) / opponentChar.plays;
+    }
+};
 
 const PlayerGamePage = () => {
     const { playerId, gameId } = useParams();
@@ -44,138 +122,6 @@ const PlayerGamePage = () => {
     const [minEntrants, setMinEntrants] = useState('');
     const [maxEntrants, setMaxEntrants] = useState('');
 
-    const fetchRegionData = async (playerId, gameId) => {
-        try {
-            const response = await fetch(`/players/${playerId}`);
-            if (!response.ok) throw new Error('Failed to fetch player data');
-            const data = await response.json();
-            const playerData = data.player;
-            setPlayer(playerData);
-            const gameData = playerData.games.find(g => g.gameId === parseInt(gameId));
-            if (gameData) {
-                await fetchTournamentData(gameData);
-                setGame(gameData);
-                setOpponents(gameData.opponents);
-                setFilteredOpponents(gameData.opponents)
-                setCharacters(aggregateCharacterData(gameData.opponents));
-            }
-        } catch (error) {
-            console.error('Error fetching region data:', error);
-        }
-    };
-
-    const fetchGameData = async (gameId) => {
-        try {
-            const response = await fetch(`/games/${gameId}`);
-            if (!response.ok) throw new Error('Failed to fetch player data');
-            const data = await response.json();
-            const gameData = data.game.game;
-            setGameData(gameData);
-        } catch (error) {
-            console.error('Error fetching region data:', error);
-        }
-    };
-
-    const fetchTournamentData = async (gameData) => {
-        let brackets = [];
-        for (const tournament of gameData.tournaments) {
-            try {
-                const tournamentData = await fetchData(`/tournaments/${tournament.tournamentId}`);
-                const eventData = await fetchData(`/tournaments/${tournament.tournamentId}/events/${tournament.eventId}`);
-                const nameOfBracket = `${tournamentData.tournament.tournamentName}: ${eventData[tournamentData.tournament._id].eventName}`;
-                brackets.push({
-                    _id: tournamentData.tournament._id,
-                    tournament: tournamentData.tournament,
-                    event: eventData[tournamentData.tournament._id],
-                    placement: tournament.placement,
-                    nameOfBracket: nameOfBracket
-                });
-            } catch (error) {
-                console.error(`Error fetching tournament ${tournament.tournamentId}:`, error);
-            }
-        }
-        gameData.opponents.forEach(opponent => {
-            opponent._id = opponent.opponentId;
-            opponent.tournaments = addTournamentNames(opponent.tournaments, brackets);
-        });
-        setTournaments(brackets);
-        setCombinedTournaments(brackets);
-    };
-
-    const fetchData = async (url) => {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`Failed to fetch data from ${url}`);
-        return response.json();
-    };
-
-    const addTournamentNames = (tournaments, brackets) => {
-        return tournaments.map(tournament => {
-            const bracket = brackets.find(bracket =>
-                bracket.tournament._id === tournament.tournamentId &&
-                bracket.event.eventId === tournament.eventId
-            );
-            return {
-                ...tournament,
-                tournamentName: bracket ? `${bracket.tournament.tournamentName}: ${bracket.event.eventName}` : 'Unknown Tournament',
-                startAt: bracket ? bracket.event.startAt : -1
-            };
-        });
-    };
-
-    const aggregateCharacterData = (opponents) => {
-        let playerCharacters = {};
-        opponents.forEach(opponent => {
-            opponent.tournaments.forEach(tournament => {
-                tournament.matches.forEach(match => {
-                    updateCharacterData(playerCharacters, match);
-                });
-            });
-        });
-        return playerCharacters;
-    };
-
-    const updateCharacterData = (playerCharacters, match) => {
-        if (!playerCharacters.hasOwnProperty(match.playerChar)) {
-            playerCharacters[match.playerChar] = { plays: 0, winrate: 0, stages: {} };
-        }
-        const playerChar = playerCharacters[match.playerChar];
-        playerChar.plays += 1;
-        updateMatchData(playerChar, match);
-        if (match.stage !== "N/A") {
-            if (!playerChar.stages.hasOwnProperty(match.stage)) {
-                playerChar.stages[match.stage] = { plays: 0, winrate: 0 };
-            }
-            const stage = playerChar.stages[match.stage];
-            stage.plays += 1;
-            updateMatchData(playerChar, match, true);
-            updateMatchData(stage, match);
-        }
-    };
-
-    const updateMatchData = (charData, match, stage) => {
-        let opponentChar
-        if (stage) {
-            opponentChar = charData[match.opponentChar]['stages'][match.stage] || { plays: 0, winrate: 0 };
-        }
-        else {
-            opponentChar = charData[match.opponentChar] || { plays: 0, winrate: 0, stages: {} };
-        }
-        opponentChar.plays += 1;
-        if (stage) {
-            charData[match.opponentChar]['stages'][match.stage] = opponentChar
-        }
-        else {
-            charData[match.opponentChar] = opponentChar;
-        }
-        if (match.type === 'win') {
-            charData.winrate = ((charData.plays - 1) * charData.winrate + 1) / charData.plays;
-            opponentChar.winrate = ((opponentChar.plays - 1) * opponentChar.winrate + 1) / opponentChar.plays;
-        } else if (match.type === 'loss') {
-            charData.winrate = ((charData.plays - 1) * charData.winrate) / charData.plays;
-            opponentChar.winrate = ((opponentChar.plays - 1) * opponentChar.winrate) / opponentChar.plays;
-        }
-    };
-
     const handleSubmit = (e) => {
         e.preventDefault();
         setFilterTournamentsQuery(searchQuery);
@@ -201,12 +147,73 @@ const PlayerGamePage = () => {
     };
 
     useEffect(() => {
+        // Declared inside the effect so the dependency array can be complete:
+        // these close over playerId/gameId and call setState, and defining them
+        // in the component body left them out of the deps entirely.
+        const fetchTournamentData = async (gameData) => {
+            let brackets = [];
+            for (const tournament of gameData.tournaments) {
+                try {
+                    const tournamentData = await fetchData(`/tournaments/${tournament.tournamentId}`);
+                    const eventData = await fetchData(`/tournaments/${tournament.tournamentId}/events/${tournament.eventId}`);
+                    const nameOfBracket = `${tournamentData.tournament.tournamentName}: ${eventData[tournamentData.tournament._id].eventName}`;
+                    brackets.push({
+                        _id: tournamentData.tournament._id,
+                        tournament: tournamentData.tournament,
+                        event: eventData[tournamentData.tournament._id],
+                        placement: tournament.placement,
+                        nameOfBracket: nameOfBracket
+                    });
+                } catch (error) {
+                    console.error(`Error fetching tournament ${tournament.tournamentId}:`, error);
+                }
+            }
+            gameData.opponents.forEach(opponent => {
+                opponent._id = opponent.opponentId;
+                opponent.tournaments = addTournamentNames(opponent.tournaments, brackets);
+            });
+            setTournaments(brackets);
+            setCombinedTournaments(brackets);
+        };
+
+        const fetchRegionData = async (playerId, gameId) => {
+            try {
+                const response = await fetch(`/players/${playerId}`);
+                if (!response.ok) throw new Error('Failed to fetch player data');
+                const data = await response.json();
+                const playerData = data.player;
+                setPlayer(playerData);
+                const gameData = playerData.games.find(g => g.gameId === parseInt(gameId));
+                if (gameData) {
+                    await fetchTournamentData(gameData);
+                    setGame(gameData);
+                    setOpponents(gameData.opponents);
+                    setFilteredOpponents(gameData.opponents)
+                    setCharacters(aggregateCharacterData(gameData.opponents));
+                }
+            } catch (error) {
+                console.error('Error fetching region data:', error);
+            }
+        };
+
         fetchRegionData(playerId, gameId);
     }, [playerId, gameId]);
 
     useEffect(() => {
+        const fetchGameData = async (gameId) => {
+            try {
+                const response = await fetch(`/games/${gameId}`);
+                if (!response.ok) throw new Error('Failed to fetch player data');
+                const data = await response.json();
+                const gameData = data.game.game;
+                setGameData(gameData);
+            } catch (error) {
+                console.error('Error fetching region data:', error);
+            }
+        };
+
         fetchGameData(gameId);
-    }, [gameId])
+    }, [gameId]);
 
     useEffect(() => {
         setFilteredTournaments(tournaments);
@@ -419,7 +426,7 @@ const PlayerGamePage = () => {
     );
 
     if (!player || !game || !sortedTournaments || !characters || !gameData) {
-        return <div>Loading...</div>;
+        return <LoadingScreen label={"Loading player results…"} rows={5} />;
     }
     
     const startIndex = (currentPage - 1) * perPage;

@@ -1,13 +1,616 @@
+/* ---------------------------------------------------------------------------
+   PR Tracker base styles.
+
+   Note on specificity: components/styles/styles.css does `button { all: unset }`
+   and is imported by the chart components, which makes it global. Everything
+   here that targets a button is therefore class-scoped, so it outranks that
+   element selector no matter which stylesheet loads last.
+--------------------------------------------------------------------------- */
+
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface-alt: #fafbfc;
+  --border: #e2e5ea;
+  --border-strong: #cbd1d9;
+  --text: #1b1f24;
+  --text-muted: #667085;
+  --accent: #3f9142;
+  --accent-hover: #34793a;
+  --accent-soft: #eaf4ea;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --shadow-hover: 0 4px 12px rgba(16, 24, 40, 0.1);
+}
+
 body {
   margin: 0;
+  /* Set explicitly so the page doesn't inherit the browser's dark scheme --
+     the head-to-head cell colours are pastels that only read on a light page. */
+  background: var(--bg);
+  color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+h1 { font-size: 1.6rem; margin: 0 0 18px; letter-spacing: -0.01em; }
+h2 { font-size: 1.1rem; margin: 0 0 8px; letter-spacing: -0.01em; }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* --- shell ---------------------------------------------------------------- */
+
+.app { min-height: 100vh; }
+
+.app main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+/* --- header --------------------------------------------------------------- */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.header .logo {
+  /* Unconstrained this renders at its natural ~1000px and swallows the page. */
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 50%;
+  flex: none;
+}
+
+.header h1 {
+  font-size: 1.15rem;
+  margin: 0;
+  margin-right: auto;
+}
+
+.header nav {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.header nav a {
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.header nav a:hover {
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  text-decoration: none;
+}
+
+/* An empty trailing nav link is rendered when no breadcrumb is passed. */
+.header nav a:empty { display: none; }
+
+/* --- forms ---------------------------------------------------------------- */
+
+.app main > form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.search-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 180px;
+}
+
+.search-bar label,
+.game-filter > label:first-child,
+.date-picker > label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+input[type='text'],
+.date-picker input,
+.react-datepicker__input-container input {
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+
+input[type='text']:focus,
+.react-datepicker__input-container input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.game-filter,
+.date-range-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.game-filter {
+  gap: 6px;
+}
+
+.game-filter label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: var(--text);
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+}
+
+.game-filter input[type='checkbox'] {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+}
+
+.date-range-picker {
+  flex-direction: row;
+  gap: 10px;
+}
+
+.date-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* --- buttons -------------------------------------------------------------- */
+
+.app main > form button,
+.pagination button,
+.button,
+.link-button .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.app main > form button:hover,
+.pagination button:hover:not(:disabled),
+.button:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-hover);
+}
+
+/* Primary action: the Search submit and the H2H shortcut. */
+.app main > form button[type='submit'],
+.season-shortcuts .link-button:first-child .button,
+.button-grid .link-button:first-child .button {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.app main > form button[type='submit']:hover,
+.season-shortcuts .link-button:first-child .button:hover,
+.button-grid .link-button:first-child .button:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: #fff;
+}
+
+.pagination button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.link-button { text-decoration: none; }
+.link-button:hover { text-decoration: none; }
+
+.season-shortcuts,
+.button-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.season-shortcuts { margin-top: 12px; }
+.button-grid { margin-top: 18px; }
+
+/* Title row with an action button pushed to the right. */
+.page-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.page-heading h1 { margin: 0; }
+
+.button-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.button-primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: #fff;
+}
+
+/* The chart page's two dropdown filters sit on one row above the table.
+   PlayerFilter renders the chart inside its own wrapper, so that wrapper is
+   `display: contents` -- it drops out of layout and lets its trigger join the
+   row while the chart claims a full line of its own. */
+.chart-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.chart-panel { display: contents; }
+
+/* min-width:0 is required: as a flex item this defaults to min-width:auto,
+   which refuses to shrink below the table's natural width and dragged the
+   whole page sideways. */
+.chart-body {
+  flex-basis: 100%;
+  min-width: 0;
+  margin-top: 6px;
+}
+
+.filter-control {
+  position: relative;
+}
+
+.dropdown-content {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  max-height: 320px;
+  overflow-y: auto;
+  min-width: 220px;
+  font-size: 0.9rem;
+}
+
+.dropdown-content label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.dropdown-content label:hover { background: var(--accent-soft); }
+
+.dropdown-content input[type='checkbox'] {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+}
+
+.zoom-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.zoom-button,
+.zoom-reset {
+  padding: 5px 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.zoom-reset { min-width: 58px; }
+
+.zoom-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.zoom-button:disabled:hover {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+/* --- loading ------------------------------------------------------------- */
+
+.loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex: none;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.skeleton-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-sm);
+  flex: none;
+}
+
+.skeleton-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+
+.skeleton-line { height: 12px; border-radius: 6px; }
+.skeleton-title { width: 38%; height: 15px; }
+.skeleton-meta { width: 62%; }
+
+/* One shared shimmer so every placeholder pulses in step. */
+.skeleton-avatar,
+.skeleton-line {
+  background: linear-gradient(90deg, #eef0f3 25%, #e2e5ea 37%, #eef0f3 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  from { background-position: 100% 50%; }
+  to { background-position: 0 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: 2s; }
+  .skeleton-avatar,
+  .skeleton-line { animation: none; background: #eef0f3; }
+}
+
+/* --- result cards --------------------------------------------------------- */
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.league-item,
+.player-item,
+.tournament-item,
+.game-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.league-item:hover,
+.player-item:hover,
+.tournament-item:hover,
+.game-item:hover {
+  box-shadow: var(--shadow-hover);
+  border-color: var(--border-strong);
+}
+
+.league-logo,
+.player-logo,
+.tournament-logo {
+  width: 52px;
+  height: 52px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
+  flex: none;
+}
+
+/* Regions and seasons carry no image field, so React renders an <img> with no
+   src. Hide those rather than showing a broken-image glyph and alt text. */
+.league-logo:not([src]),
+.player-logo:not([src]),
+.tournament-logo:not([src]),
+img[src=''] {
+  display: none;
+}
+
+.league-info,
+.player-info,
+.tournament-info,
+.game-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.league-info h2,
+.player-info h2,
+.tournament-info h2 {
+  color: var(--text);
+}
+
+.league-info a h2:hover { color: var(--accent); }
+
+.league-details,
+.player-details,
+.tournament-details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.league-game,
+.league-events,
+.league-players,
+.league-time,
+.player-events,
+.player-character,
+.tournament-players,
+.tournament-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+/* These icons are full-size PNGs; without a cap each one is taller than the
+   card it sits in. */
+.game-icon,
+.events-icon,
+.players-icon,
+.trophy-icon,
+.placement-icon,
+.character-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  opacity: 0.75;
+  flex: none;
+}
+
+.character-icon { width: 22px; height: 22px; opacity: 1; }
+
+/* --- pagination ----------------------------------------------------------- */
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.pagination > label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* --- sort controls -------------------------------------------------------- */
+
+.sort-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.sort-options select {
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.sort-options select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* --- responsive ----------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .app main { padding: 16px 12px 48px; }
+  .header { flex-wrap: wrap; gap: 10px; }
+  .header h1 { font-size: 1rem; }
+  .app main > form { flex-direction: column; align-items: stretch; }
+  .search-bar { min-width: 0; }
+  .date-range-picker { flex-direction: column; }
 }

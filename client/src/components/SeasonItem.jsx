@@ -7,23 +7,27 @@ import { formatDate } from '../helpers';
 
 const SeasonItem = ({ regionId, season }) => {
   const { seasonName: urlSeasonName } = useParams();
-  let players = season.players.length;
-  let tournaments = 0;
 
-  for (const player of season.players) {
-    for (const game of player.games) {
-      if (game.gameId === season.gameId) {
-        tournaments += game.tournaments.length;
-        break;
+  // Counts come from the season summary. Older callers passed hydrated player
+  // documents instead, so fall back to counting those.
+  let players = season.playerCount;
+  let tournaments = season.tournamentCount;
+  if (players === undefined && Array.isArray(season.players)) {
+    players = season.players.length;
+    tournaments = 0;
+    for (const player of season.players) {
+      for (const game of player.games || []) {
+        if (game.gameId === season.gameId) {
+          tournaments += game.tournaments.length;
+          break;
+        }
       }
     }
   }
 
-  const startDate = new Date(season.startDate * 1000);
-  const endDate = new Date(season.endDate * 1000);
-
-  const formattedStartDate = formatDate(startDate);
-  const formattedEndDate = formatDate(endDate);
+  const formattedStartDate = formatDate(new Date(season.startDate * 1000));
+  const formattedEndDate = formatDate(new Date(season.endDate * 1000));
+  const seasonPath = `/regions/${regionId}/seasons/${season.seasonName}`;
 
   return (
     <div className="league-item">
@@ -32,7 +36,7 @@ const SeasonItem = ({ regionId, season }) => {
         {urlSeasonName ? (
           <h2>{season.seasonName}</h2>
         ) : (
-          <Link to={`/regions/${regionId}/seasons/${season.seasonName}`}>
+          <Link to={seasonPath}>
             <h2>{season.seasonName}</h2>
           </Link>
         )}
@@ -50,6 +54,21 @@ const SeasonItem = ({ regionId, season }) => {
             <img src={person} alt="Players Icon" className="players-icon" /> {players}
           </div>
         </div>
+        {!urlSeasonName && (
+          // Straight to the chart from the season list, instead of going
+          // through the season page first.
+          <div className="season-shortcuts">
+            <Link to={`${seasonPath}/h2h-chart`} className="link-button">
+              <button className="button">H2H Chart</button>
+            </Link>
+            <Link to={`${seasonPath}/players`} className="link-button">
+              <button className="button">Players</button>
+            </Link>
+            <Link to={`${seasonPath}/tournaments`} className="link-button">
+              <button className="button">Tournaments</button>
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

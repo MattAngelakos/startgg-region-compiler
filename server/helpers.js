@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 import dotenv from 'dotenv'
 import validator from 'validator';
+import { gqlRequest } from './startgg.js';
 dotenv.config();
 let options = {
     minLength: 8,
@@ -74,38 +75,15 @@ const doRequest = async (query, id, videogameId, limit, updatedAfter, page) => {
     intCheck(limit, "limit")
     numCheck(updatedAfter, "updatedAfter")
     intCheck(updatedAfter, "updatedAfter")
-    const key = process.env.STARTGG_KEY
-    const input = "Bearer "+key.toString()
     query = stringCheck(query, "query")
     atLeast(query, 1, "query")
-    const variables = {
+    return await gqlRequest(query, {
         id: id,
         videogameId: videogameId,
         limit: limit,
         updatedAfter: updatedAfter,
         page: page
-    };
-    const requestBody = JSON.stringify({
-        query: query,
-        variables: variables
-    });
-    const requestOptions = (body) => ({
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': input
-        },
-        body: body
-      });
-    try {
-        const response = await fetch('https://api.start.gg/gql/alpha', requestOptions(requestBody));
-        const data = await response.json();
-        console.log('Query Response:', data);
-        return data;
-    } catch (error) {
-        console.error('Error in Query:', error);
-        throw error;
-    }
+    })
 }
 const emailCheck = (val) => {
     if (!validator.isEmail(val.trim())) {

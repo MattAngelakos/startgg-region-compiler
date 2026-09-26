@@ -16,9 +16,13 @@ const TournamentItem = ({ tournament, event, placement }) => {
                     <h2>{tournament.tournamentName}: {event.eventName}</h2>
                 </Link>
                 <div className="tournament-details">
-                    <div className="tournament-time">
-                        <img src={trophy} alt="Placement Icon" className="placement-icon" /> {placement}
-                    </div>
+                    {/* The season tournament list has no placement to show, so
+                        without this guard it rendered a lone icon. */}
+                    {placement !== undefined && placement !== null && (
+                        <div className="tournament-time">
+                            <img src={trophy} alt="Placement Icon" className="placement-icon" /> {placement}
+                        </div>
+                    )}
                     <div className="tournament-time">
                         <img src={calendar} alt="Events Icon" className="events-icon" /> {formattedStartDate}
                     </div>

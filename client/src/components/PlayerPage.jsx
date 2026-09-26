@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import LoadingScreen from './LoadingScreen';
 import { useParams } from 'react-router-dom';
 import Header from './Header';
 import GameItem from './GameItem';
@@ -29,7 +30,7 @@ const PlayerPage = () => {
         []
     );
     if (!player) {
-        return <div>Loading...</div>;
+        return <LoadingScreen label={"Loading player…"} rows={3} />;
     }
     for(let game of player.games){
         game._id = game.gameId

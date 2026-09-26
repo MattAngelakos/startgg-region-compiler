@@ -20,12 +20,9 @@
     "react-collapsible": "^2.10.0",
     "react-datepicker": "^7.1.0",
     "react-dom": "^18.3.1",
-    "react-map-interaction": "^2.1.0",
-    "react-quick-pinch-zoom": "^5.1.0",
     "react-router": "^6.23.1",
     "react-router-dom": "^6.23.1",
     "react-scripts": "5.0.1",
-    "react-zoom-pan-pinch": "^3.5.1",
     "web-vitals": "^2.1.4",
     "xlsx": "^0.18.5"
   },

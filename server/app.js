@@ -110,11 +110,14 @@ try {
     // console.log(await setsRequest(1700217, 1386))//Floppyfail 
     //console.log(await setsRequest(1290320, 1386))//AmericanWeeaboo 
 
-    // console.log(await setsRequest(551860, 1386))//Noodl 
-    // console.log(await setsRequest(1473392, 1386))//Hoo D. Nii
+    console.log(await setsRequest(551860, 1386))//Noodl 
+    console.log(await setsRequest(1473392, 1386))//Hoo D. Nii
+    console.log(await setsRequest(2058734, 1386))//LVL6 
+    console.log(await setsRequest(1769202, 1386))//Aquaze
+    console.log(await setsRequest(1100022, 1386))//Lakia 
+    
     // console.log(await setsRequest(1089023, 1386))//Hunter
     // console.log(await setsRequest(147246, 1386))//Leon 
-    //console.log(await setsRequest(1769202, 1386))//Aquaze
     // console.log(await setsRequest(869771, 1386))//Kipp
     // console.log(await setsRequest(278439, 1386))//Haze 
     // console.log(await setsRequest(147679, 1386))//Mateo 
@@ -133,11 +136,9 @@ try {
     // console.log(await setsRequest(3619477, 1386))//dino 
     // console.log(await setsRequest(1277941, 1386))//Hollow 
     // console.log(await setsRequest(757280, 1386))//Kouhai 
-    // console.log(await setsRequest(1100022, 1386))//Lakia 
     // console.log(await setsRequest(1322135, 1386))//Jellyfish 
     // console.log(await setsRequest(1708272, 1386))//Cheese 
     // console.log(await setsRequest(1063242, 1386))//Glob 
-    //console.log(await setsRequest(2058734, 1386))//LVL6 
     // console.log(await setsRequest(2824423, 1386))//Sunbun 
     // console.log(await setsRequest(1585721, 1386))//Mimik 
     // console.log(await setsRequest(1804989, 1386))//AABattery 
@@ -186,32 +187,32 @@ try {
 }
 
 try {
-    await addPlayers("67744c9e04e6435db0ca2c18", "q2_2026", [
-        2058734,
-        1290320,
-        1467525,
-        1189720,
-        2220603,
-        1797847,
-        1769202,
-        1463554,
-        616232,
-        6301,
-        1276193,
-        15768,
-        1138799,
-        1760115,
-        540839,
-        2010954,
-        942751,
-        1700217,
-        1931564,
-        1605499,
-        3304742,
-        1216463,
-        231113,
-        1064188
-   ])
+//     await addPlayers("67744c9e04e6435db0ca2c18", "q2_2026", [
+//         2058734,
+//         1290320,
+//         1467525,
+//         1189720,
+//         2220603,
+//         1797847,
+//         1769202,
+//         1463554,
+//         616232,
+//         6301,
+//         1276193,
+//         15768,
+//         1138799,
+//         1760115,
+//         540839,
+//         2010954,
+//         942751,
+//         1700217,
+//         1931564,
+//         1605499,
+//         3304742,
+//         1216463,
+//         231113,
+//         1064188
+//    ])
 } catch (e) {
    console.log(e)
 }

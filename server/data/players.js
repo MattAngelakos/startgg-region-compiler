@@ -99,6 +99,11 @@ const editPlayer = async (id, editObject) => {
         atLeast(editObject.gamerTag, 1, "gamerTag")
         updatedPlayer.gamerTag = editObject.gamerTag
     }
+    if("pfp" in editObject){
+        editObject.pfp = stringCheck(editObject.pfp, "pfp")
+        atLeast(editObject.pfp, 1, "pfp")
+        updatedPlayer.pfp = editObject.pfp
+    }
     if("games" in editObject){
         arrayCheck(editObject.games, "games")
         for (const element of editObject.games) {

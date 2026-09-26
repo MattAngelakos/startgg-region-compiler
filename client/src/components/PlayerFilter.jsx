@@ -43,8 +43,9 @@ const PlayerFilter = ({ originalObject, originalH2H }) => {
     };
 
     return (
-        <div>
-            <button onClick={() => setDropdownVisible(!dropdownVisible)}>
+        <div className="chart-panel">
+            <div className="filter-control">
+            <button className="button" onClick={() => setDropdownVisible(!dropdownVisible)}>
                 Select Players
             </button>
             {dropdownVisible && (
@@ -60,9 +61,10 @@ const PlayerFilter = ({ originalObject, originalH2H }) => {
                             {player}
                         </label>
                     ))}
-                    <button onClick={handleSubmit}>Submit</button>
+                    <button className="button button-primary" onClick={handleSubmit}>Submit</button>
                 </div>
             )}
+            </div>
             <HeadToHeadChart data={filteredObject} />
         </div>
     );

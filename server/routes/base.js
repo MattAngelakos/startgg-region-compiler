@@ -1,5 +1,5 @@
 import express from "express";
-import { getAllGames, getGame } from "../data/games.js";
+import { getAllGames, getGame, getCharacterIcons } from "../data/games.js";
 const router = express.Router();
 
 router.get("/games", async (req, res) => {
@@ -12,6 +12,19 @@ router.get("/games", async (req, res) => {
         res.status(500).json({
             error: errorTypes.SERVER_ERROR,
         });
+    }
+});
+
+router.get("/games/:gameId/characters", async (req, res) => {
+    const gameId = parseInt(req.params.gameId);
+    if (Number.isNaN(gameId)) {
+        return res.status(400).json({ error: "invalid gameId" });
+    }
+    try {
+        const characters = await getCharacterIcons(gameId);
+        res.status(200).json({ characters: characters });
+    } catch (error) {
+        res.status(500).json({ error: String(error) });
     }
 });
 

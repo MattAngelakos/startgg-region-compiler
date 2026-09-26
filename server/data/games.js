@@ -20,6 +20,27 @@ const getGame = async (id) => {
     return findGame
 }
 
+// Character art lives on the game document, not on each player's character
+// record, so it is joined by name at read time. Returned as a name -> urls map
+// so callers can look an icon up directly instead of scanning 87 entries.
+const getCharacterIcons = async (id) => {
+    intCheck(id, "gameId")
+    const game = await getGame(id)
+    const characters = (game.game && game.game.characters) || []
+    const icons = {}
+    for (const character of characters) {
+        const byType = {}
+        for (const image of character.images || []) {
+            byType[image.type] = image.url
+        }
+        icons[character.name] = {
+            icon: byType.icon || byType.stockIcon || null,
+            stockIcon: byType.stockIcon || byType.icon || null
+        }
+    }
+    return icons
+}
+
 const createGame = async (id) => {
     intCheck(id, "gameId")
     const query = `
@@ -69,6 +90,7 @@ const removeGame = async (id) => {
 export {
     getAllGames,
     getGame,
+    getCharacterIcons,
     removeGame,
     createGame
 }

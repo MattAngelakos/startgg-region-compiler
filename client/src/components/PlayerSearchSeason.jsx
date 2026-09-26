@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import LoadingScreen from './LoadingScreen';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Header from './Header';
 import PlayerItem from './PlayerItem';
@@ -10,6 +11,8 @@ import Pagination from './Pagination';
 const PlayerSearchSeason = () => {
     const { regionId, seasonName } = useParams()
     const [season, setSeason] = useState(null)
+    const [regionName, setRegionName] = useState('')
+    const [characterIcons, setCharacterIcons] = useState(null)
     const [gameId, setGameId] = useState(null)
     const [playersQuery] = useState('')
     const [filterPlayersQuery, setFilterPlayersQuery] = useState('')
@@ -46,6 +49,7 @@ const PlayerSearchSeason = () => {
                     const data = await response.json();
                     region = data.region
                     setGameId(region.gameId)
+                    setRegionName(region.regionName)
                 } catch (error) {
                     console.error('Error fetching region data:', error);
                 }
@@ -112,12 +116,30 @@ const PlayerSearchSeason = () => {
         };
         fetchRegionData();
     }, [seasonName, regionId]);
+    useEffect(() => {
+        if (!gameId) return;
+        const fetchCharacterIcons = async () => {
+            try {
+                const response = await fetch(`/games/${gameId}/characters`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch character icons');
+                }
+                const data = await response.json();
+                setCharacterIcons(data.characters);
+            } catch (error) {
+                console.error('Error fetching character icons:', error);
+            }
+        };
+        fetchCharacterIcons();
+    }, [gameId]);
+
     const seasonPropMapper = useCallback(
         (player) => ({
             player: player,
             gameId: gameId,
+            characterIcons: characterIcons,
         }),
-        [gameId]
+        [gameId, characterIcons]
     );
     let filteredPlayers = useMemo(() => {
         if (!season) return [];
@@ -148,7 +170,7 @@ const PlayerSearchSeason = () => {
         }
     }, [season, filterPlayersQuery, sortKey]);
     if (!filteredPlayers) {
-        return <div>Loading...</div>;
+        return <LoadingScreen label={"Loading players…"} rows={6} />;
     }
     let filteredPlayers2 = filteredPlayers.filter(player =>
         player.gamerTag.toLowerCase().includes(searchQuery.toLowerCase())
@@ -157,13 +179,13 @@ const PlayerSearchSeason = () => {
     const endIndex = startIndex + perPage;
     const currentPlayers = filteredPlayers.slice(startIndex, endIndex);
     if (!season) {
-        return <div>Loading...</div>;
+        return <LoadingScreen label={"Loading players…"} rows={6} />;
     }
     return (
         <div className="app">
             <Header link={`/regions/${regionId}/seasons/${seasonName}`} linkname={seasonName} />
             <main>
-                <h1>League Detail for {regionId}</h1>
+                <h1>{regionName ? `${regionName} - ${seasonName}` : seasonName} Players</h1>
                 <div className="sort-options">
                     <label>Sort by: </label>
                     <select onChange={(e) => setSortKey(e.target.value)} value={sortKey}>
