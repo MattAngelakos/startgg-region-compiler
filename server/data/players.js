@@ -347,7 +347,7 @@ const validateOpponentAndSetId = (opponentId, setId) => {
     intCheck(setId, "setId");
 };
 
-const createPlayerRecord = async (type, playerId, gameId, tourneyId, eventId, opponentName, opponentId, setId) => {
+const createPlayerRecord = async (type, playerId, gameId, tourneyId, eventId, opponentName, opponentId, setId, completedAt) => {
     if(type !== 'win' && type != 'loss'){
         throw 'invalid type'
     }
@@ -365,7 +365,9 @@ const createPlayerRecord = async (type, playerId, gameId, tourneyId, eventId, op
     const newRecord = {
         opponentId: opponentId,
         opponentName: opponentName,
-        tournaments: [{ setId: setId, tournamentId: tourneyId, eventId: eventId, type: type, matches: []}]
+        // completedAt lets ratings run in true match order; older rows predate
+        // it and fall back to the event's start time.
+        tournaments: [{ setId: setId, tournamentId: tourneyId, eventId: eventId, type: type, completedAt: completedAt ?? null, matches: []}]
     };
     records.push(newRecord);
     await editPlayer(playerId, player);
@@ -540,12 +542,12 @@ const editMatches = async (playerId, gameId, opponentId, setId, matchNum, editOb
     return player.games[gameIndex].opponents[opponentIndex].tournaments[setIndex].matches[index]
 }
 
-const createPlayerWin = async (playerId, gameId, tourneyId, eventId, opponentName, opponentId, setId) => {
-    return await createPlayerRecord('win', playerId, gameId, tourneyId, eventId, opponentName, opponentId, setId);
+const createPlayerWin = async (playerId, gameId, tourneyId, eventId, opponentName, opponentId, setId, completedAt) => {
+    return await createPlayerRecord('win', playerId, gameId, tourneyId, eventId, opponentName, opponentId, setId, completedAt);
 };
 
-const createPlayerLoss = async (playerId, gameId, tourneyId, eventId, opponentName, opponentId, setId) => {
-    return await createPlayerRecord('loss', playerId, gameId, tourneyId, eventId, opponentName, opponentId, setId);
+const createPlayerLoss = async (playerId, gameId, tourneyId, eventId, opponentName, opponentId, setId, completedAt) => {
+    return await createPlayerRecord('loss', playerId, gameId, tourneyId, eventId, opponentName, opponentId, setId, completedAt);
 };
 
 const getAllPlayerWins = async (id, gameId) => {

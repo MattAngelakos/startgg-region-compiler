@@ -2,7 +2,7 @@ import express from "express";
 import { getRegionSeasonSummaries } from '../data/summaries.js';
 import { getAllRegions, getRegion } from "../data/regions.js";
 import { getSeason } from "../data/seasons.js";
-import { do_elo, do_glicko2, do_h2h, finish_h2h, getEventResultsByRegion, getTournamentsBySeason, seasonFilter } from "../data/playerData.js";
+import { do_elo, do_glicko2, do_h2h, finish_h2h, getSeasonMatches, getEventResultsByRegion, getTournamentsBySeason, seasonFilter } from "../data/playerData.js";
 import { arrayCheck, atLeast, intCheck, numCheck } from "../helpers.js";
 import { getPlayer } from "../data/players.js";
 import _ from 'lodash';
@@ -162,9 +162,10 @@ router.get("/:regionId/seasons/:seasonName/stats/head-to-head", async (req, res)
     }
     try {
         const unfinished_h2h = await do_h2h(regionId, seasonName)
+        const matches = await getSeasonMatches(regionId, seasonName)
         let h2h = _.cloneDeep(unfinished_h2h);
-        h2h = do_elo(h2h)
-        h2h = do_glicko2(h2h)
+        h2h = do_elo(h2h, matches)
+        h2h = do_glicko2(h2h, matches)
         h2h = finish_h2h(h2h)
         res.status(200).json({
             h2h: h2h,
@@ -180,7 +181,8 @@ router.get("/:regionId/seasons/:seasonName/stats/head-to-head", async (req, res)
 
 router.post("/:regionId/seasons/:seasonName/stats/head-to-head", async (req, res) => {
     let { regionId, seasonName } = req.params;
-    const { tournaments } = req.body;
+    // tournaments: eventIds to exclude. players: playerIds to keep (omit for all).
+    const { tournaments, players } = req.body;
     try{
         parseInt(regionId)
     }catch(e){
@@ -198,11 +200,19 @@ router.post("/:regionId/seasons/:seasonName/stats/head-to-head", async (req, res
     }catch(e){
         return res.status(403).json({ error: 'tournaments must be an array' });
     }
+    if (players !== undefined && players !== null) {
+        try{
+            arrayCheck(players)
+        }catch(e){
+            return res.status(403).json({ error: 'players must be an array' });
+        }
+    }
     try {
-        let unfinished_h2h = await do_h2h(regionId, seasonName, tournaments)
+        let unfinished_h2h = await do_h2h(regionId, seasonName, tournaments, players)
+        const matches = await getSeasonMatches(regionId, seasonName, tournaments, players)
         let h2h = _.cloneDeep(unfinished_h2h);
-        h2h = do_elo(h2h)
-        h2h = do_glicko2(h2h)
+        h2h = do_elo(h2h, matches)
+        h2h = do_glicko2(h2h, matches)
         h2h = finish_h2h(h2h)
         res.status(200).json({
             h2h: h2h,

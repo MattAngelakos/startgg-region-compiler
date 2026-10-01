@@ -1,13 +1,7 @@
 import { gqlRequest } from '../startgg.js'
+import { seriesName } from '../helpers.js'
 import { getRegion } from './regions.js'
 import { getSeason } from './seasons.js'
-
-// Strips series numbering so "Fusion #311" and "Fusion #312" count as one
-// recurring event, matching reduceEventNames in playerData.js.
-const seriesName = (name) => {
-    let cleaned = name.split(/[#\d-]/)[0].trim()
-    return cleaned.replace(/(?: [IVXLCDM]+)?$/, '').trim()
-}
 
 const TOURNAMENTS_QUERY = `
 query RegionTournaments($state: String!, $videogameId: ID!, $after: Timestamp!, $before: Timestamp!, $page: Int!) {
@@ -183,4 +177,4 @@ const discoverSeasonPlayers = async (regionId, seasonName, options = {}) => {
     return { region: region, season: season, events: events, candidates: candidates }
 }
 
-export { discoverSeasonPlayers, findSeasonEvents, entrantsForEvent, seriesName }
+export { discoverSeasonPlayers, findSeasonEvents, entrantsForEvent }

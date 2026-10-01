@@ -1,8 +1,8 @@
 import { closeConnection } from '../config/mongoConnection.js'
 import { getAllRegions, getRegion } from '../data/regions.js'
-import { createSeason, getSeason, addPlayers } from '../data/seasons.js'
+import { createSeason, getSeason, addPlayers, editSeason } from '../data/seasons.js'
 import { createPlayer, createGameForPlayer, getPlayer, getGameFromPlayer } from '../data/players.js'
-import { setsRequest, refreshGamerTag } from '../data/playerData.js'
+import { setsRequest, refreshGamerTag, backfillCompletedAt } from '../data/playerData.js'
 import { discoverSeasonPlayers } from '../data/roster.js'
 
 const usage = `
@@ -10,12 +10,15 @@ Usage:
   node scripts/season.js list
   node scripts/season.js create   <region> <season>            e.g. create NJ q3_2026
   node scripts/season.js discover <region> <season> [--write] [--all] [--min-events N]
-  node scripts/season.js roster   <region> <season> --ids <id,id,...>
+  node scripts/season.js roster   <region> <season> --ids <id,id,...> [--remove]
   node scripts/season.js sync     <region> <season> [--full] [--only <id,id>] [--no-refresh]
   node scripts/season.js refresh  <region> <season>
+  node scripts/season.js timestamps <region> <season> [--all] [--only <id,id>]
 
 Flags:
   --ids          explicit player ids for a hand-picked roster (roster command)
+  --remove       with roster: take those ids off the season instead of adding them
+  --all          with timestamps: backfill a player's whole history, not just this season
   --write        add the discovered players to the season (creates missing player records)
   --all          include players who do not meet the region's thresholds
   --min-events N override the region's minimumEvents for this run
@@ -103,6 +106,30 @@ const cmdRoster = async (regionName, seasonName, args) => {
     const ids = raw.split(',').map((s) => Number(s.trim())).filter((n) => Number.isInteger(n))
 
     const regionId = region._id.toString()
+
+    if (args.includes('--remove')) {
+        const seasonIndex = await getSeason(regionId, seasonName)
+        const current = region.seasons[seasonIndex].players || []
+        const removing = ids.filter((id) => current.includes(id))
+        const notOnRoster = ids.filter((id) => !current.includes(id))
+        for (const id of removing) {
+            let tag = String(id)
+            try {
+                tag = (await getPlayer(id)).gamerTag
+            } catch (e) { /* removal does not need the record to exist */ }
+            console.log(`  removing ${tag} (${id})`)
+        }
+        for (const id of notOnRoster) console.log(`  ${id} was not on the roster, skipping`)
+        // Player documents are left alone: they may belong to other seasons,
+        // and their match history is still referenced as opponent data.
+        await editSeason(regionId, seasonName, {
+            players: current.filter((id) => !ids.includes(id))
+        })
+        const after = await getRegion(regionId)
+        console.log(`\n${seasonName} is now ${after.seasons[seasonIndex].players.length} players (${removing.length} removed)`)
+        return
+    }
+
     console.log(`adding ${ids.length} players to ${region.regionName} ${seasonName}`)
     for (const id of ids) await ensurePlayer(id, region.gameId, undefined)
 
@@ -179,6 +206,51 @@ const cmdRefresh = async (regionName, seasonName, args) => {
     console.log(`\n${changed.length} tag(s) changed, ${pfpOnly} avatar-only update(s), ${playerIds.length} checked`)
 }
 
+// Fills in per-set completedAt on rows written before it was stored, so the
+// ratings can order matches exactly instead of falling back to event start.
+const cmdTimestamps = async (regionName, seasonName, args) => {
+    const region = await findRegion(regionName)
+    const regionId = region._id.toString()
+    const seasonIndex = await getSeason(regionId, seasonName)
+    const season = region.seasons[seasonIndex]
+
+    const only = flagValue(args, '--only')
+    const playerIds = only ? only.split(',').map((s) => Number(s.trim())) : season.players || []
+    if (playerIds.length === 0) {
+        console.log(`${seasonName} has no players yet`)
+        return
+    }
+
+    const since = args.includes('--all') ? 0 : season.startDate
+    console.log(`backfilling set times for ${playerIds.length} players in ${region.regionName} ${seasonName}`)
+    console.log(`window: ${args.includes('--all') ? 'full history' : day(season.startDate) + ' -> ' + day(season.endDate)}\n`)
+
+    const started = Date.now()
+    let totalUpdated = 0
+    let totalUnmatched = 0
+    const failures = []
+    for (let i = 0; i < playerIds.length; i++) {
+        const playerId = playerIds[i]
+        let tag = String(playerId)
+        try {
+            tag = (await getPlayer(playerId)).gamerTag
+        } catch (e) { /* the id is enough to report on */ }
+        process.stdout.write(`[${i + 1}/${playerIds.length}] ${tag} (${playerId}) ... `)
+        try {
+            const result = await backfillCompletedAt(playerId, region.gameId, { since: since })
+            totalUpdated += result.updated
+            totalUnmatched += result.unmatched
+            console.log(`${result.updated} filled, ${result.alreadySet} already set, ${result.unmatched} outside window`)
+        } catch (e) {
+            console.log(`FAILED: ${e.message || e}`)
+            failures.push({ playerId, tag, error: e.message || String(e) })
+        }
+    }
+    const minutes = ((Date.now() - started) / 60000).toFixed(1)
+    console.log(`\ndone in ${minutes} min: ${totalUpdated} set times filled in, ${failures.length} failure(s)`)
+    for (const f of failures) console.log(`  ${f.tag} (${f.playerId}): ${f.error}`)
+}
+
 const cmdSync = async (regionName, seasonName, args) => {
     const region = await findRegion(regionName)
     const seasonIndex = await getSeason(region._id.toString(), seasonName)
@@ -245,6 +317,7 @@ const main = async () => {
         case 'roster': await cmdRoster(regionName, seasonName, args); break
         case 'discover': await cmdDiscover(regionName, seasonName, args); break
         case 'refresh': await cmdRefresh(regionName, seasonName, args); break
+        case 'timestamps': await cmdTimestamps(regionName, seasonName, args); break
         case 'sync': await cmdSync(regionName, seasonName, args); break
         default: console.log(usage)
     }

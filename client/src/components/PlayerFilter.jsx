@@ -1,71 +1,53 @@
 import React, { useState, useEffect } from 'react';
 import './styles/styles.css';
-import HeadToHeadChart from './HeadToHeadChart';
-import { do_elo, do_glicko2, finish_h2h } from '../helpers';
 
-const PlayerFilter = ({ originalObject, originalH2H }) => {
-    const [selectedPlayers, setSelectedPlayers] = useState([]);
-    const [filteredObject, setFilteredObject] = useState({});
+// A control only. It used to hold the chart and recompute Elo/Glicko-2 in the
+// browser from a duplicate of the server's rating code; filtering now asks the
+// server to rate the chosen players, so one implementation decides the numbers.
+const PlayerFilter = ({ roster, selectedIds, onApply }) => {
+    const [selected, setSelected] = useState([]);
     const [dropdownVisible, setDropdownVisible] = useState(false);
 
     useEffect(() => {
-        setSelectedPlayers(Object.keys(originalObject));
-        setFilteredObject(originalObject);
-    }, [originalObject]);
+        setSelected(selectedIds && selectedIds.length
+            ? selectedIds
+            : roster.map((player) => player.id));
+    }, [roster, selectedIds]);
 
-    const handleCheckboxChange = (player) => {
-        setSelectedPlayers((prevSelectedPlayers) =>
-            prevSelectedPlayers.includes(player)
-                ? prevSelectedPlayers.filter((p) => p !== player)
-                : [...prevSelectedPlayers, player]
+    const handleCheckboxChange = (playerId) => {
+        setSelected((previous) =>
+            previous.includes(playerId)
+                ? previous.filter((id) => id !== playerId)
+                : [...previous, playerId]
         );
     };
 
-    const handleSubmit = () => {
-        let newFilteredObject = Object.keys(originalH2H)
-            .filter((key) => selectedPlayers.includes(key))
-            .reduce((obj, key) => {
-                let filteredNestedObject = Object.keys(originalH2H[key])
-                    .filter((nestedKey) => selectedPlayers.includes(nestedKey) || nestedKey === 'elo' || nestedKey === 'rating' || nestedKey === 'deviation' || nestedKey === 'id' || nestedKey === 'volatility')
-                    .reduce((nestedObj, nestedKey) => {
-                        nestedObj[nestedKey] = originalH2H[key][nestedKey];
-                        return nestedObj;
-                    }, {});
-
-                obj[key] = filteredNestedObject;
-                return obj;
-            }, {});
-        newFilteredObject = do_elo(newFilteredObject)
-        newFilteredObject = do_glicko2(newFilteredObject)
-        newFilteredObject = finish_h2h(newFilteredObject)
-        setFilteredObject(newFilteredObject);
+    const handleSubmit = async () => {
         setDropdownVisible(false);
+        await onApply(selected);
     };
 
     return (
-        <div className="chart-panel">
-            <div className="filter-control">
+        <div className="filter-control">
             <button className="button" onClick={() => setDropdownVisible(!dropdownVisible)}>
                 Select Players
             </button>
             {dropdownVisible && (
                 <div className="dropdown-content">
-                    {Object.keys(originalObject).map((player) => (
-                        <label key={player}>
+                    {roster.map((player) => (
+                        <label key={player.id}>
                             <input
                                 type="checkbox"
-                                value={player}
-                                checked={selectedPlayers.includes(player)}
-                                onChange={() => handleCheckboxChange(player)}
+                                value={player.id}
+                                checked={selected.includes(player.id)}
+                                onChange={() => handleCheckboxChange(player.id)}
                             />
-                            {player}
+                            {player.tag}
                         </label>
                     ))}
                     <button className="button button-primary" onClick={handleSubmit}>Submit</button>
                 </div>
             )}
-            </div>
-            <HeadToHeadChart data={filteredObject} />
         </div>
     );
 };

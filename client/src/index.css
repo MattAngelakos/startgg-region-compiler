@@ -296,16 +296,9 @@ input[type='text']:focus,
   margin-bottom: 14px;
 }
 
-.chart-panel { display: contents; }
-
-/* min-width:0 is required: as a flex item this defaults to min-width:auto,
-   which refuses to shrink below the table's natural width and dragged the
-   whole page sideways. */
-.chart-body {
-  flex-basis: 100%;
-  min-width: 0;
-  margin-top: 6px;
-}
+/* The chart sits beside the filter row as its own block now, so it no longer
+   needs the flex-item min-width:0 escape hatch. */
+.chart-body { margin-top: 6px; }
 
 .filter-control {
   position: relative;

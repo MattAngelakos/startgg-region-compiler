@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import Header from './Header';
 import TournamentFilter from './TournamentFilter';
 import PlayerFilter from './PlayerFilter';
+import HeadToHeadChart from './HeadToHeadChart';
 import * as XLSX from "xlsx";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
@@ -12,10 +13,14 @@ import { saveAs } from "file-saver";
 const HeadToHeadWrapper = () => {
     const { regionId, seasonName } = useParams();
     const [head2head, setHead2Head] = useState(null);
-    const [originalH2H, setOriginalHead2Head] = useState(null);
     const [tournaments, setTournaments] = useState([]);
     const [regionName, setRegionName] = useState('');
     const [sortKey, setSortKey] = useState("rating");
+    // The full roster is captured from the unfiltered load and never narrowed,
+    // so players stay re-selectable after a filter removes them from the chart.
+    const [roster, setRoster] = useState([]);
+    const [excludedTournaments, setExcludedTournaments] = useState([]);
+    const [selectedPlayerIds, setSelectedPlayerIds] = useState(null);
 
     useEffect(() => {
         const fetchRegionData = async () => {
@@ -26,7 +31,7 @@ const HeadToHeadWrapper = () => {
                 }
                 const data = await response.json();
                 setHead2Head(data.h2h);
-                setOriginalHead2Head(data.unfinished_h2h)
+                setRoster(Object.keys(data.h2h).map((tag) => ({ tag, id: data.h2h[tag].id })));
             } catch (error) {
                 console.error('Error fetching head-to-head data:', error);
             }
@@ -63,25 +68,39 @@ const HeadToHeadWrapper = () => {
         fetchRegionName();
     }, [regionId, seasonName]);
 
-    const filterh2h = async (filteredTournaments) => {
+    // Both filters go through the server. Ratings used to be recomputed in the
+    // browser from a second copy of the Elo/Glicko-2 code, which seeded players
+    // differently and so changed every rating the moment you filtered.
+    const applyFilters = async (nextExcludedTournaments, nextSelectedPlayerIds) => {
+        const body = { tournaments: nextExcludedTournaments };
+        if (nextSelectedPlayerIds && nextSelectedPlayerIds.length) {
+            body.players = nextSelectedPlayerIds;
+        }
         try {
-            let eventIds = filteredTournaments.map(tournament => tournament.eventId);
             const response = await fetch(`/regions/${regionId}/seasons/${seasonName}/stats/head-to-head`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ tournaments: eventIds }),
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
             });
             if (!response.ok) {
                 throw new Error('Failed to fetch filtered head-to-head data');
             }
             const data = await response.json();
-            setHead2Head(data.h2h)
-            setOriginalHead2Head(data.originalH2H)
+            setHead2Head(data.h2h);
         } catch (error) {
             console.error('Error fetching filtered head-to-head data:', error);
         }
+    };
+
+    const filterTournaments = async (filteredTournaments) => {
+        const eventIds = filteredTournaments.map((tournament) => tournament.eventId);
+        setExcludedTournaments(eventIds);
+        await applyFilters(eventIds, selectedPlayerIds);
+    };
+
+    const filterPlayers = async (playerIds) => {
+        setSelectedPlayerIds(playerIds);
+        await applyFilters(excludedTournaments, playerIds);
     };
 
 
@@ -178,10 +197,15 @@ const HeadToHeadWrapper = () => {
                 <div className="chart-controls">
                     <TournamentFilter
                         tournaments={tournaments}
-                        filterh2h={filterh2h}
+                        filterh2h={filterTournaments}
                     />
-                    <PlayerFilter originalObject={head2head} originalH2H={originalH2H} />
+                    <PlayerFilter
+                        roster={roster}
+                        selectedIds={selectedPlayerIds}
+                        onApply={filterPlayers}
+                    />
                 </div>
+                <HeadToHeadChart data={head2head} />
             </main>
         </div>
     );

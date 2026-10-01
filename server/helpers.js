@@ -85,6 +85,21 @@ const doRequest = async (query, id, videogameId, limit, updatedAfter, page) => {
         page: page
     })
 }
+// Strips series numbering so recurring events collapse to one name:
+// "Fusion #311" and "Fusion #312" both become "Fusion". Used both by the
+// eligibility rules and by season roster discovery, so they cannot drift apart.
+const seriesName = (name) => {
+    // Cut at the first '#', digit or '-'
+    const cleaned = stringCheck(name, "tournamentName").split(/[#\d-]/)[0].trim()
+    // Drop a trailing Roman numeral, e.g. "Winter Clash II" -> "Winter Clash"
+    return cleaned.replace(/(?: [IVXLCDM]+)?$/, '').trim()
+}
+
+const reduceEventNames = (names) => {
+    arrayCheck(names, "names")
+    return names.map(seriesName)
+}
+
 const emailCheck = (val) => {
     if (!validator.isEmail(val.trim())) {
         throw "not valid email"
@@ -147,6 +162,8 @@ const sortLev = (inputs, search) => {
 
 export{
     atLeast,
+    seriesName,
+    reduceEventNames,
     stringCheck,
     numCheck,
     intCheck,

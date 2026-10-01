@@ -1,7 +1,8 @@
-import { atLeast, doRequest, intCheck, numCheck, stringCheck, objectCheck, arrayCheck, sortLev, createDate } from "../helpers.js"
+import { atLeast, doRequest, intCheck, numCheck, stringCheck, objectCheck, arrayCheck, sortLev, createDate, reduceEventNames } from "../helpers.js"
 import { addPlay, createPlayerCharacter } from "./characters.js"
 import { createGameForPlayer, createPlayer, createPlayerLoss, createPlayerMatch, createPlayerWin, createTournamentForPlayer, editPlayer, editPlayerLoss, editPlayerWin, getAllPlayers, getGameFromPlayer, getPlayer, getPlayerLoss, getPlayerWin, getTournamentFromPlayer } from "./players.js"
 import { getRegion } from "./regions.js"
+import { tournaments as tournaments_collection } from "../config/mongoCollections.js"
 import { getSeason } from "./seasons.js"
 import { createEvent, createTournament, getMainTournament, getTournament } from "./tournaments.js"
 
@@ -277,7 +278,7 @@ const setsRequest = async (playerId, videogameId, options = {}) => {
                 }
                 if (won) {
                     try {
-                        await createPlayerWin(playerId, videogameId, set.event.tournament.id, set.event.id, opponentName, opponentId, set.id)
+                        await createPlayerWin(playerId, videogameId, set.event.tournament.id, set.event.id, opponentName, opponentId, set.id, set.completedAt)
                     }
                     catch (e) {
                         winIndex = await getPlayerWin(playerId, videogameId, opponentId)
@@ -285,13 +286,13 @@ const setsRequest = async (playerId, videogameId, options = {}) => {
                         if (setIndex !== -1) {
                             throw `win with setId ${set.id} already exists`
                         }
-                        player.games[gameIndex].opponents[winIndex].tournaments.push({ setId: set.id, tournamentId: set.event.tournament.id, eventId: set.event.id, type: 'win', matches: [] })
+                        player.games[gameIndex].opponents[winIndex].tournaments.push({ setId: set.id, tournamentId: set.event.tournament.id, eventId: set.event.id, type: 'win', completedAt: set.completedAt ?? null, matches: [] })
                         await editPlayerWin(playerId, videogameId, opponentId, { tournaments: player.games[gameIndex].opponents[winIndex].tournaments })
                     }
                 }
                 else {
                     try {
-                        await createPlayerLoss(playerId, videogameId, set.event.tournament.id, set.event.id, opponentName, opponentId, set.id)
+                        await createPlayerLoss(playerId, videogameId, set.event.tournament.id, set.event.id, opponentName, opponentId, set.id, set.completedAt)
                     }
                     catch (e) {
                         lossIndex = await getPlayerLoss(playerId, videogameId, opponentId)
@@ -299,7 +300,7 @@ const setsRequest = async (playerId, videogameId, options = {}) => {
                         if (setIndex !== -1) {
                             throw `loss with setId ${set.id} already exists`
                         }
-                        player.games[gameIndex].opponents[lossIndex].tournaments.push({ setId: set.id, tournamentId: set.event.tournament.id, eventId: set.event.id, type: 'loss', matches: [] })
+                        player.games[gameIndex].opponents[lossIndex].tournaments.push({ setId: set.id, tournamentId: set.event.tournament.id, eventId: set.event.id, type: 'loss', completedAt: set.completedAt ?? null, matches: [] })
                         await editPlayerLoss(playerId, videogameId, opponentId, { tournaments: player.games[gameIndex].opponents[lossIndex].tournaments })
                     }
                 }
@@ -423,15 +424,6 @@ const seasonFilter = async (regionId, seasonName, playerId) => {
     return player;
 }
 
-function reduceEventNames(events) {
-    return events.map(event => {
-        // Remove anything after a number, '#', or '-'
-        let cleanedEvent = event.split(/[#\d-]/)[0].trim();
-        // Remove trailing Roman numerals if they occur at the end
-        cleanedEvent = cleanedEvent.replace(/(?: [IVXLCDM]+)?$/, '').trim();
-        return cleanedEvent;
-    });
-}
 
 const playerEligible = async (region, seasonName, playerId) => {
     try {
@@ -460,8 +452,9 @@ const playerEligible = async (region, seasonName, playerId) => {
             );
             const reducedTournamentNames = reduceEventNames(tournamentNames)
             const uniqueEvents = new Set(reducedTournamentNames)
-            //console.log(uniqueEvents)
-            if (uniqueEvents.length < region.minimumUniqueEvents) {
+            // A Set has .size, not .length. Reading .length gave undefined, and
+            // `undefined < n` is false, so this rule never rejected anyone.
+            if (uniqueEvents.size < region.minimumUniqueEvents) {
                 return false;
             }
         }
@@ -491,15 +484,21 @@ const playerFilter = async (regionId, seasonName) => {
 };
 
 
-const do_h2h = async (regionId, seasonName, tournaments) => {
+// playerIds, when given, restricts the matrix to those roster members. The
+// ratings are computed from whatever this returns, so narrowing here means the
+// server rates the filtered set directly instead of the client re-deriving it.
+const do_h2h = async (regionId, seasonName, tournaments, playerIds) => {
     let opponentIndex
     let h2h = {}
     let region = await getRegion(regionId)
     seasonName = stringCheck(seasonName, "seasonName")
     atLeast(seasonName, 1, "seasonName")
     const seasonIndex = await getSeason(regionId, seasonName)
+    const roster = playerIds && playerIds.length
+        ? region.seasons[seasonIndex].players.filter((id) => playerIds.includes(id))
+        : region.seasons[seasonIndex].players
     let i = 0
-    for (const playerId of region.seasons[seasonIndex].players) {
+    for (const playerId of roster) {
         try {
             let player = await seasonFilter(regionId, seasonName, playerId)
             if (tournaments) {
@@ -509,14 +508,14 @@ const do_h2h = async (regionId, seasonName, tournaments) => {
             let newPlayerH2H = {
                 id: playerId,
             }
-            for (let j = i; j < region.seasons[seasonIndex].players.length; j++) {
+            for (let j = i; j < roster.length; j++) {
                 let wins
                 let losses
                 let opponent
                 try {
                     const gameIndex = await getGameFromPlayer(playerId, region.gameId)
-                    opponent = await getPlayer(region.seasons[seasonIndex].players[j])
-                    opponentIndex = player.games[gameIndex].opponents.findIndex(record => record.opponentId === region.seasons[seasonIndex].players[j])
+                    opponent = await getPlayer(roster[j])
+                    opponentIndex = player.games[gameIndex].opponents.findIndex(record => record.opponentId === roster[j])
                     if (opponentIndex === -1) {
                         wins = []
                         losses = []
@@ -543,6 +542,142 @@ const do_h2h = async (regionId, seasonName, tournaments) => {
         }
     }
     return h2h
+}
+
+// Elo and Glicko-2 are sequential: the order matches are applied changes the
+// result. The h2h matrix only holds win/loss totals, so rating off it meant
+// walking matches in JavaScript key order -- an arbitrary order that shifted
+// ratings by up to ~80 (Elo) and ~190 (Glicko-2) points. This returns the same
+// matches as one chronologically ordered list instead.
+//
+// completedAt is exact but only exists on rows written since it was added, so
+// older rows fall back to the event's start time. setId breaks remaining ties
+// so the order is always deterministic.
+// Sets recorded before completedAt was stored have no per-set time, so ratings
+// fall back to the event's start for them. This re-reads just the timestamps
+// from start.gg and fills them in; it never creates or removes a set.
+const backfillCompletedAt = async (playerId, videogameId, options = {}) => {
+    const since = options.since ?? 0
+    const maxPages = options.maxPages ?? 25
+    const perPage = options.perPage ?? 200
+
+    const query = `
+    query SetTimes($id: ID!, $limit: Int!, $page: Int!, $updatedAfter: Timestamp!) {
+        player(id: $id) {
+            sets(perPage: $limit, page: $page, filters: {updatedAfter: $updatedAfter}) {
+                pageInfo {
+                    totalPages
+                }
+                nodes {
+                    id
+                    completedAt
+                }
+            }
+        }
+    }
+    `
+
+    const times = new Map()
+    let page = 1
+    let totalPages = null
+    do {
+        const response = await doRequest(query, playerId, videogameId, perPage, since, page)
+        const sets = response.data && response.data.player && response.data.player.sets
+        if (!sets || !sets.nodes || sets.nodes.length === 0) break
+        totalPages = sets.pageInfo.totalPages
+        for (const node of sets.nodes) {
+            if (node.completedAt) times.set(Number(node.id), node.completedAt)
+        }
+        page = page + 1
+    } while (page <= maxPages && (totalPages === null || page <= totalPages))
+
+    const player = await getPlayer(playerId)
+    const gameIndex = player.games.findIndex((game) => game.gameId === videogameId)
+    if (gameIndex === -1) {
+        return { fetched: times.size, rows: 0, alreadySet: 0, updated: 0, unmatched: 0 }
+    }
+
+    let rows = 0
+    let alreadySet = 0
+    let updated = 0
+    let unmatched = 0
+    for (const record of player.games[gameIndex].opponents || []) {
+        for (const set of record.tournaments || []) {
+            rows = rows + 1
+            if (set.completedAt) {
+                alreadySet = alreadySet + 1
+                continue
+            }
+            const at = times.get(Number(set.setId))
+            if (at) {
+                set.completedAt = at
+                updated = updated + 1
+            } else {
+                unmatched = unmatched + 1
+            }
+        }
+    }
+    if (updated > 0) {
+        await editPlayer(playerId, player)
+    }
+    return { fetched: times.size, rows, alreadySet, updated, unmatched }
+}
+
+const getSeasonMatches = async (regionId, seasonName, tournaments, playerIds) => {
+    const region = await getRegion(regionId)
+    const seasonIndex = await getSeason(regionId, seasonName)
+    const roster = playerIds && playerIds.length
+        ? region.seasons[seasonIndex].players.filter((id) => playerIds.includes(id))
+        : region.seasons[seasonIndex].players
+    const onRoster = new Set(roster)
+
+    // eventId -> startAt, read once rather than per set
+    const tournamentCollection = await tournaments_collection()
+    const eventStart = new Map()
+    for (const tournament of await tournamentCollection.find({}).toArray()) {
+        for (const event of tournament.events || []) {
+            eventStart.set(event.eventId, event.startAt)
+        }
+    }
+
+    const tagById = new Map()
+    const bySetId = new Map()
+    for (const playerId of roster) {
+        let player
+        try {
+            player = await seasonFilter(regionId, seasonName, playerId)
+            if (tournaments && tournaments.length) {
+                player = await tournamentFilter(player, region.gameId, tournaments)
+            }
+        } catch (e) {
+            continue
+        }
+        tagById.set(playerId, player.gamerTag)
+        const gameIndex = player.games.findIndex((game) => game.gameId === region.gameId)
+        if (gameIndex === -1) continue
+        for (const record of player.games[gameIndex].opponents || []) {
+            if (!onRoster.has(record.opponentId)) continue
+            for (const set of record.tournaments || []) {
+                // Each set appears in both players' records; keep one copy.
+                if (bySetId.has(set.setId)) continue
+                bySetId.set(set.setId, {
+                    setId: set.setId,
+                    winnerId: set.type === 'win' ? playerId : record.opponentId,
+                    loserId: set.type === 'win' ? record.opponentId : playerId,
+                    at: set.completedAt ?? eventStart.get(set.eventId) ?? 0
+                })
+            }
+        }
+    }
+
+    const matches = [...bySetId.values()]
+    matches.sort((a, b) => a.at - b.at || a.setId - b.setId)
+    // Tags are what the h2h matrix is keyed by.
+    for (const match of matches) {
+        match.winner = tagById.get(match.winnerId)
+        match.loser = tagById.get(match.loserId)
+    }
+    return matches.filter((match) => match.winner && match.loser)
 }
 
 const finish_h2h = (h2h) => {
@@ -1045,335 +1180,191 @@ const getTournamentsBySeason = async (regionId, seasonName) => {
     return results
 }
 
-const do_elo = (h2h) => {
+const do_elo = (h2h, matches) => {
+    if (!Array.isArray(matches)) {
+        throw 'do_elo requires a chronological match list from getSeasonMatches'
+    }
+    // Every season starts level: a season's ratings come only from that
+    // season's matches. This used to be a chain of per-player seeds hardcoded
+    // by start.gg id -- a stale snapshot that matched no season in the data,
+    // covered only some of the roster, and listed one id twice so the second
+    // entry was unreachable.
     for (let player in h2h) {
-        if (h2h[player].id === 1216463) { //syrup
-            h2h[player].elo = 1692.43
-        }
-        else if (h2h[player].id === 231113) { //jakal
-            h2h[player].elo = 1654.61
-        }
-        else if (h2h[player].id === 15768) { //tweek
-            h2h[player].elo = 1642.79
-        }
-        // else if (h2h[player].id === 54394){ //sumgai
-
-        // }
-        // else if (h2h[player].id === 147246){ //leon
-
-        // }
-        else if (h2h[player].id === 1071129) { //pharaoh
-            h2h[player].elo = 1434.13
-        }
-        else if (h2h[player].id === 1224902) { //webbjp
-            h2h[player].elo = 1525.37
-        }
-        else if (h2h[player].id === 1064188) { //yeast
-            h2h[player].elo = 1337.83
-        }
-        else if (h2h[player].id === 1760115) { //synnister
-            h2h[player].elo = 1577.39
-        }
-        else if (h2h[player].id === 1797847){ //thugz
-            h2h[player].elo = 1347.72
-        }
-        // else if (h2h[player].id === 1605499){ //luigikid
-
-        // }
-        else if (h2h[player].id === 467656) { //fawn
-            h2h[player].elo = 1621.35
-        }
-        else if (h2h[player].id === 2220603) { //fhantum
-            h2h[player].elo = 1686.16
-        }
-        else if (h2h[player].id === 1931564) { //petayaa
-            h2h[player].elo = 1487.57
-        }
-        else if (h2h[player].id === 616232) { //beatybean
-            h2h[player].elo = 1400.26
-        }
-        else if (h2h[player].id === 1463554) { //smashbros!
-            h2h[player].elo = 1494.9
-        }
-        else if (h2h[player].id === 662541) { //Deltaforce
-            h2h[player].elo = 1448.9
-        }
-        else if (h2h[player].id === 551860) { //noodl
-            h2h[player].elo = 1392.33
-        }
-        else if (h2h[player].id === 551860) { //a9
-            h2h[player].elo = 1611.23
-        }
-        else if (h2h[player].id === 1769202){ //aquaze
-            h2h[player].elo = 1535.75
-        }
-        else {
-            h2h[player].elo = 1500
-        }
+        h2h[player].elo = 1500
     }
     function Probability(rating1, rating2) {
         return (
             (1.0 * 1.0) / (1 + 1.0 * Math.pow(10, (1.0 * (rating1 - rating2)) / 400))
         );
     }
-    function EloRating(player, opponent, K, d) {
-        let Ra = h2h[player].elo
-        let Rb = h2h[opponent].elo
-        let Pb = Probability(Ra, Rb);
-        let Pa = Probability(Rb, Ra);
-        if (d === true) {
-            Ra = Ra + K * (1 - Pa);
-            Rb = Rb + K * (0 - Pb);
-        }
-        else {
-            Ra = Ra + K * (0 - Pa);
-            Rb = Rb + K * (1 - Pb);
-        }
-        h2h[player].elo = Ra
-        h2h[opponent].elo = Rb
+    // Expected scores sum to 1, so the two updates cancel and the pool's total
+    // rating is conserved.
+    function applyResult(winner, loser, K) {
+        const Rw = h2h[winner].elo
+        const Rl = h2h[loser].elo
+        const expectedWinner = Probability(Rl, Rw);
+        const expectedLoser = Probability(Rw, Rl);
+        h2h[winner].elo = Rw + K * (1 - expectedWinner);
+        h2h[loser].elo = Rl + K * (0 - expectedLoser);
     }
-    for (let player in h2h) {
-        for (let opponent in h2h[player]) {
-            if (opponent !== 'id') {
-                const wins = h2h[player][opponent].wins;
-                const losses = h2h[player][opponent].losses;
-                for (let i = 0; i < wins; i++) {
-                    EloRating(player, opponent, 30, true);
-                }
-                for (let i = 0; i < losses; i++) {
-                    EloRating(player, opponent, 30, false);
-                }
-            }
-        }
+    // Applied in match order. Grouping by opponent pair and walking object keys
+    // made the result depend on key order rather than on what happened.
+    for (const match of matches) {
+        if (h2h[match.winner] === undefined || h2h[match.loser] === undefined) continue
+        applyResult(match.winner, match.loser, 30);
     }
     return h2h
 }
 
-const do_glicko2 = (h2h) => {
-    function convert(player) {
-        player.rating = (player.rating - 1500.0) / 173.7178
-        player.deviation = player.deviation / 173.7178
+// Glicko-2, per Glickman's specification.
+//
+// The algorithm is defined over *rating periods*: you collect every game a
+// player played in a period and update once from their rating at the start of
+// it. This used to call the update once per set, which made a player's rating
+// depend on their own earlier games within the same period, collapsed RD
+// monotonically, and discarded the volatility it had just computed.
+//
+// Default period = the whole season. Glickman targets roughly 10-15 games per
+// player per period; over a season these players average 15 (min 7, max 52),
+// whereas 30-day periods would give ~6 and weekly ~3 -- too sparse to estimate
+// from. Pass periodDays to subdivide if a season ever gets busy enough.
+const GLICKO_SCALE = 173.7178
+const GLICKO_TAU = 0.5          // system constant: smaller = less volatile
+const GLICKO_EPSILON = 0.000001
+
+const do_glicko2 = (h2h, matches, options = {}) => {
+    if (!Array.isArray(matches)) {
+        throw 'do_glicko2 requires a chronological match list from getSeasonMatches'
     }
-    function unconvert(player) {
-        player.rating = (player.rating * 173.7178) + 1500
-        player.deviation = player.deviation * 173.7178
-    }
-    function G(p) {
-        const scale = p / Math.PI
-        return 1.0 / Math.pow((1.0 + 3.0 * scale * scale), 0.5)
-    }
-    function E(g, u, uj) {
-        const exponent = -1.0 * g * (u - uj)
-        return 1.0 / (1.0 + Math.pow(Math.E, exponent))
-    }
-    function F(x, dS, pS, v, a, tS) {
-        let eX = Math.pow(Math.E, x)
-        let num = eX * (dS - pS - v - eX)
-        let den = pS + v + eX
-        return (num / (2.0 * den * den)) - ((x - a) / tS)
-    }
-    function update(m, opponent, score, player) {
-        let invV = 0.0
-        const g = G(opponent.deviation)
-        const e = E(g, player.rating, opponent.rating)
-        invV += g * g * e * (1.0 - e)
-        const v = 1.0 / invV
-        let dInner = 0.0
-        for (let j = 0; j < m; j++) {
-            dInner += g * (score[j] - e);
+    const periodDays = options.periodDays ?? 0
+
+    const g = (deviation) => 1 / Math.sqrt(1 + (3 * deviation * deviation) / (Math.PI * Math.PI))
+    const E = (rating, opponentRating, opponentDeviation) =>
+        1 / (1 + Math.exp(-g(opponentDeviation) * (rating - opponentRating)))
+
+    // Solves for the new volatility (Illinois variant of regula falsi).
+    const newVolatility = (delta, phi, v, sigma) => {
+        const deltaSq = delta * delta
+        const phiSq = phi * phi
+        const tauSq = GLICKO_TAU * GLICKO_TAU
+        const a = Math.log(sigma * sigma)
+        const f = (x) => {
+            const ex = Math.exp(x)
+            const numerator = ex * (deltaSq - phiSq - v - ex)
+            const denominator = 2 * Math.pow(phiSq + v + ex, 2)
+            return (numerator / denominator) - ((x - a) / tauSq)
         }
-        const d = v * dInner;
-        const sPrime = Math.pow(Math.E, (Convergence(d, v, player.deviation, player.volatility) / 2.0))
-        const pPrime = 1.0 / Math.pow(((1.0 / (player.deviation * player.deviation + sPrime * sPrime)) + invV), 0.5);
-        const uPrime = player.rating + pPrime * pPrime * dInner;
-        return { uPrime, pPrime, sPrime }
-    }
-    function decay(p, s) {
-        const pPrime = Math.pow((p * p + s * s), 0.5);
-        return pPrime
-    }
-    function Convergence(d, v, p, s) {
-        let dS = d * d;
-        let pS = p * p;
-        let tS = 0.5 * 0.5;
-        let a = Math.log(s * s);
-        let A = a;
-        let B;
-        let bTest = dS - pS - v;
-        if (bTest > 0.0) {
-            B = Math.log(bTest);
+
+        let A = a
+        let B
+        if (deltaSq > phiSq + v) {
+            B = Math.log(deltaSq - phiSq - v)
+        } else {
+            let k = 1
+            while (f(a - k * GLICKO_TAU) < 0) k = k + 1
+            B = a - k * GLICKO_TAU
         }
-        else {
-            B = a - 0.5;
-            while (F(B, dS, pS, v, a, tS) < 0.0) {
-                B -= 0.5;
+
+        let fA = f(A)
+        let fB = f(B)
+        let guard = 0
+        while (Math.abs(B - A) > GLICKO_EPSILON && guard < 100) {
+            const C = A + ((A - B) * fA) / (fB - fA)
+            const fC = f(C)
+            if (fC * fB <= 0) {
+                A = B
+                fA = fB
+            } else {
+                fA = fA / 2
             }
+            B = C
+            fB = fC
+            guard = guard + 1
         }
-        let fA = F(A, dS, pS, v, a, tS);
-        let fB = F(B, dS, pS, v, a, tS);
-        while (Math.abs(B - A) > 0.000001) {
-            let C = A + (A - B) * fA / (fB - fA);
-            let fC = F(C, dS, pS, v, a, tS);
+        return Math.exp(A / 2)
+    }
 
-            if (fC * fB < 0.0) {
-                A = B;
-                fA = fB;
-            }
-            else {
-                fA /= 2.0;
-            }
+    // Everyone starts at the Glicko-2 default, on the internal scale.
+    const state = {}
+    for (const player in h2h) {
+        state[player] = { rating: 0, deviation: 350 / GLICKO_SCALE, volatility: 0.06 }
+    }
 
-            B = C;
-            fB = fC;
+    // Bucket matches into rating periods. periodDays = 0 means one period.
+    const periods = new Map()
+    const firstAt = matches.length ? matches[0].at : 0
+    for (const match of matches) {
+        const index = periodDays > 0
+            ? Math.floor((match.at - firstAt) / (periodDays * 86400))
+            : 0
+        if (!periods.has(index)) periods.set(index, [])
+        periods.get(index).push(match)
+    }
+
+    for (const index of [...periods.keys()].sort((a, b) => a - b)) {
+        // Every player in a period is rated against the others' ratings as they
+        // stood at the start of it, so results inside a period are simultaneous.
+        const before = {}
+        for (const player in state) before[player] = { ...state[player] }
+
+        const games = {}
+        for (const match of periods.get(index)) {
+            if (!state[match.winner] || !state[match.loser]) continue
+            if (!games[match.winner]) games[match.winner] = []
+            if (!games[match.loser]) games[match.loser] = []
+            games[match.winner].push({ opponent: match.loser, score: 1 })
+            games[match.loser].push({ opponent: match.winner, score: 0 })
         }
-        return A;
-    }
-    for (let player in h2h) {
-        // if (h2h[player].id === 1216463) { //syrup
-        //     h2h[player].rating = 1835.63
-        //     h2h[player].deviation = 99.60
-        //     convert(h2h[player])
-        // }
-        // else if (h2h[player].id === 231113) { //jakal
-        //     h2h[player].rating = 1621.79
-        //     h2h[player].deviation = 73.36
-        //     convert(h2h[player])
-        // }
-        // else if (h2h[player].id === 15768) { //tweek
-        //     h2h[player].rating = 1951.68
-        //     h2h[player].deviation = 145.33
-        //     convert(h2h[player])
-        // }
-        // else if (h2h[player].id === 54394){ //sumgai
 
-        // }
-        // else if (h2h[player].id === 147246){ //leon
+        for (const player in state) {
+            const played = games[player]
+            const self = before[player]
 
-        // }
-        // else if (h2h[player].id === 1071129) { //pharaoh
-        //     h2h[player].rating = 1241.59
-        //     h2h[player].deviation = 276.71
-        //     convert(h2h[player])
-        // }
-        // else if (h2h[player].id === 1224902) { //webbjp
-        //     h2h[player].rating = 1495.68
-        //     h2h[player].deviation = 127.98
-        //     convert(h2h[player])
-        // }
-        // else if (h2h[player].id === 1064188) { //yeast
-        //     h2h[player].rating = 1157.64
-        //     h2h[player].deviation = 81.94
-        //     convert(h2h[player])
-        // }
-        // else if (h2h[player].id === 1760115) { //synnister
-        //     h2h[player].rating = 1479.51
-        //     h2h[player].deviation = 69.27
-        //     convert(h2h[player])
-        // }
-        // else if (h2h[player].id === 1797847){ //thugz
-        //     h2h[player].rating = 1164.75
-        //     h2h[player].deviation = 82.72
-        //     convert(h2h[player])
-        // }
-        // // else if (h2h[player].id === 1605499){ //luigikid
-
-        // // }
-        // else if (h2h[player].id === 467656) { //fawn
-        //     h2h[player].rating = 1601.98
-        //     h2h[player].deviation = 79.38
-        //     convert(h2h[player])
-        // }
-        // else if (h2h[player].id === 2220603) { //fhantum
-        //     h2h[player].rating = 1614.67
-        //     h2h[player].deviation = 69.68
-        //     convert(h2h[player])
-        // }
-        // else if (h2h[player].id === 1931564) { //petayaa
-        //     h2h[player].rating = 1417.58
-        //     h2h[player].deviation = 134.22
-        //     convert(h2h[player])
-        // }
-        // else if (h2h[player].id === 616232) { //beatybean
-        //     h2h[player].rating = 1265.24
-        //     h2h[player].deviation = 275.07
-        //     convert(h2h[player])
-        // }
-        // else if (h2h[player].id === 1463554) { //smashbros!
-        //     h2h[player].rating = 1373.60
-        //     h2h[player].deviation = 150.38
-        //     convert(h2h[player])
-        // }
-        // else if (h2h[player].id === 662541) { //Deltaforce
-        //     h2h[player].rating = 1357.08
-        //     h2h[player].deviation = 264.59
-        //     convert(h2h[player])
-        // }
-        // else if (h2h[player].id === 551860) { //noodl
-        //     h2h[player].rating = 1211.99
-        //     h2h[player].deviation = 89.44
-        //     convert(h2h[player])
-        // }
-        // else if (h2h[player].id === 551860) { //a9
-        //     h2h[player].rating = 1544.04
-        //     h2h[player].deviation = 92.74
-        //     convert(h2h[player])
-        // }
-        // else if (h2h[player].id === 1769202){ //aquaze
-        //     h2h[player].rating = 1446.61
-        //     h2h[player].deviation = 89.94
-        //     convert(h2h[player])
-        // }
-        // else {
-            h2h[player].rating = 0
-            h2h[player].deviation = 350 / 173.7178
-        //}
-        h2h[player].volatility = 0.06
-    }
-    for (let player in h2h) {
-        for (let opponent in h2h[player]) {
-            if (opponent !== 'id' && opponent !== 'rating' && opponent !== 'deviation' && opponent !== 'volatility' && opponent !== 'elo') {
-                const wins = h2h[player][opponent].wins;
-                const losses = h2h[player][opponent].losses;
-                let updatedRatings
-                let updatedRatings2
-                for (let i = 0; i < wins; i++) {
-                    updatedRatings = update(1, h2h[opponent], [1], h2h[player])
-                    updatedRatings2 = update(1, h2h[player], [0], h2h[opponent])
-                    h2h[player].rating = updatedRatings.uPrime
-                    h2h[player].deviation = updatedRatings.pPrime
-                    h2h[player].volatility = updatedRatings.sPrime
-                    h2h[opponent].rating = updatedRatings2.uPrime
-                    h2h[opponent].deviation = updatedRatings2.pPrime
-                    h2h[opponent].volatility = updatedRatings2.sPrime
-                }
-                for (let i = 0; i < losses; i++) {
-                    updatedRatings = update(1, h2h[opponent], [0], h2h[player])
-                    updatedRatings2 = update(1, h2h[player], [1], h2h[opponent])
-                    h2h[player].rating = updatedRatings.uPrime
-                    h2h[player].deviation = updatedRatings.pPrime
-                    h2h[player].volatility = updatedRatings.sPrime
-                    h2h[opponent].rating = updatedRatings2.uPrime
-                    h2h[opponent].deviation = updatedRatings2.pPrime
-                    h2h[opponent].volatility = updatedRatings2.sPrime
-                }
-                // const updatedRatings = update(1, [h2h[opponent]], [wins, losses], h2h[player])
-                // h2h[player].rating = updatedRatings.uPrime
-                // h2h[player].deviation = updatedRatings.pPrime
-                // h2h[player].volatility = updatedRatings.sPrime
+            if (!played || played.length === 0) {
+                // Idle players keep their rating but grow less certain, which is
+                // the step the old code defined as decay() and never called.
+                state[player].deviation = Math.sqrt(
+                    self.deviation * self.deviation + self.volatility * self.volatility
+                )
+                continue
             }
+
+            let invV = 0
+            let deltaSum = 0
+            for (const game of played) {
+                const opponent = before[game.opponent]
+                const gPhi = g(opponent.deviation)
+                const expected = E(self.rating, opponent.rating, opponent.deviation)
+                invV += gPhi * gPhi * expected * (1 - expected)
+                deltaSum += gPhi * (game.score - expected)
+            }
+            const v = 1 / invV
+            const delta = v * deltaSum
+
+            const volatility = newVolatility(delta, self.deviation, v, self.volatility)
+            const phiStar = Math.sqrt(self.deviation * self.deviation + volatility * volatility)
+            const deviation = 1 / Math.sqrt(1 / (phiStar * phiStar) + invV)
+
+            state[player].rating = self.rating + deviation * deviation * deltaSum
+            state[player].deviation = deviation
+            state[player].volatility = volatility
         }
     }
-    for (let player in h2h) {
-        h2h[player].rating = (h2h[player].rating * 173.7178) + 1500
-        h2h[player].deviation = h2h[player].deviation * 173.7178
-        h2h[player].volatility = 0.06
+
+    for (const player in h2h) {
+        h2h[player].rating = state[player].rating * GLICKO_SCALE + 1500
+        h2h[player].deviation = state[player].deviation * GLICKO_SCALE
+        // The computed volatility is kept now; it used to be overwritten with
+        // the 0.06 starting value for every player.
+        h2h[player].volatility = state[player].volatility
     }
     return h2h
 }
-
 
 export {
     refreshGamerTag,
+    backfillCompletedAt,
+    getSeasonMatches,
     setsRequest,
     getTournamentsBySeason,
     do_h2h,
