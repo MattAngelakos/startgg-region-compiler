@@ -623,6 +623,154 @@ const backfillCompletedAt = async (playerId, videogameId, options = {}) => {
     return { fetched: times.size, rows, alreadySet, updated, unmatched }
 }
 
+// seasonFilter is the expensive part of every season view, and the h2h matrix,
+// the chronological match list and the per-player bracket counts each used to
+// run it over the whole roster independently. This runs it once and hands the
+// filtered players to everything that needs them.
+const buildSeasonContext = async (regionId, seasonName, tournaments, playerIds) => {
+    const region = await getRegion(regionId)
+    const seasonIndex = await getSeason(regionId, seasonName)
+    const roster = playerIds && playerIds.length
+        ? region.seasons[seasonIndex].players.filter((id) => playerIds.includes(id))
+        : region.seasons[seasonIndex].players
+
+    const filtered = new Map()
+    for (const playerId of roster) {
+        try {
+            let player = await seasonFilter(regionId, seasonName, playerId)
+            if (tournaments && tournaments.length) {
+                player = await tournamentFilter(player, region.gameId, tournaments)
+            }
+            filtered.set(playerId, player)
+        } catch (e) {
+            console.error(`season context: skipping ${playerId}:`, e)
+        }
+    }
+
+    const present = roster.filter((id) => filtered.has(id))
+    const gameIndexOf = (player) => player.games.findIndex((game) => game.gameId === region.gameId)
+
+    // Triangular matrix, same shape do_h2h produces: each pair recorded once,
+    // mirrored later by finish_h2h.
+    const h2h = {}
+    for (let i = 0; i < present.length; i++) {
+        const player = filtered.get(present[i])
+        const gameIndex = gameIndexOf(player)
+        const entry = { id: present[i] }
+        for (let j = i + 1; j < present.length; j++) {
+            const opponentId = present[j]
+            const opponentTag = filtered.get(opponentId).gamerTag
+            let wins = 0
+            let losses = 0
+            if (gameIndex !== -1) {
+                const record = player.games[gameIndex].opponents.find((r) => r.opponentId === opponentId)
+                if (record) {
+                    wins = record.tournaments.filter((t) => t.type === 'win').length
+                    losses = record.tournaments.filter((t) => t.type === 'loss').length
+                }
+            }
+            entry[opponentTag] = { wins, losses }
+        }
+        h2h[player.gamerTag] = entry
+    }
+
+    // eventId -> startAt, for sets stored before completedAt was recorded.
+    const tournamentCollection = await tournaments_collection()
+    const eventStart = new Map()
+    for (const tournament of await tournamentCollection.find({}).toArray()) {
+        for (const event of tournament.events || []) {
+            eventStart.set(event.eventId, event.startAt)
+        }
+    }
+
+    const onRoster = new Set(present)
+    const bySetId = new Map()
+    for (const playerId of present) {
+        const player = filtered.get(playerId)
+        const gameIndex = gameIndexOf(player)
+        if (gameIndex === -1) continue
+        for (const record of player.games[gameIndex].opponents || []) {
+            if (!onRoster.has(record.opponentId)) continue
+            for (const set of record.tournaments || []) {
+                if (bySetId.has(set.setId)) continue
+                bySetId.set(set.setId, {
+                    setId: set.setId,
+                    winnerId: set.type === 'win' ? playerId : record.opponentId,
+                    loserId: set.type === 'win' ? record.opponentId : playerId,
+                    at: set.completedAt ?? eventStart.get(set.eventId) ?? 0
+                })
+            }
+        }
+    }
+    const matches = [...bySetId.values()]
+    matches.sort((a, b) => a.at - b.at || a.setId - b.setId)
+    for (const match of matches) {
+        match.winner = filtered.get(match.winnerId) && filtered.get(match.winnerId).gamerTag
+        match.loser = filtered.get(match.loserId) && filtered.get(match.loserId).gamerTag
+    }
+
+    return {
+        region,
+        roster: present,
+        players: filtered,
+        gameIndexOf,
+        h2h,
+        matches: matches.filter((m) => m.winner && m.loser)
+    }
+}
+
+// Everything the season player list needs, in one request: identity, bracket
+// count, ratings and main character. Previously the page made one request per
+// player plus a separate ratings request, each re-running seasonFilter.
+const getSeasonPlayerSummaries = async (regionId, seasonName, tournaments, playerIds) => {
+    const context = await buildSeasonContext(regionId, seasonName, tournaments, playerIds)
+    const rated = do_glicko2(do_elo(context.h2h, context.matches), context.matches)
+
+    const byTag = new Map()
+    for (const tag of Object.keys(rated)) byTag.set(rated[tag].id, rated[tag])
+
+    const players = context.roster.map((playerId) => {
+        const player = context.players.get(playerId)
+        const gameIndex = context.gameIndexOf(player)
+        const game = gameIndex === -1 ? null : player.games[gameIndex]
+        const rating = byTag.get(playerId)
+
+        let mainCharacter = null
+        let mostPlays = 0
+        for (const character of (game && game.characters) || []) {
+            if (character.numOfPlays > mostPlays) {
+                mostPlays = character.numOfPlays
+                mainCharacter = character.characterName
+            }
+        }
+
+        let wins = 0
+        let losses = 0
+        for (const record of (game && game.opponents) || []) {
+            for (const set of record.tournaments || []) {
+                if (set.type === 'win') wins = wins + 1
+                else if (set.type === 'loss') losses = losses + 1
+            }
+        }
+
+        return {
+            _id: playerId,
+            gamerTag: player.gamerTag,
+            pfp: player.pfp,
+            brackets: game ? game.tournaments.length : 0,
+            wins: wins,
+            losses: losses,
+            mainCharacter: mainCharacter,
+            elo: rating ? rating.elo : null,
+            glicko: rating ? rating.rating : null,
+            deviation: rating ? rating.deviation : null
+        }
+    })
+
+    players.sort((a, b) => (b.glicko ?? -Infinity) - (a.glicko ?? -Infinity))
+    return { region: context.region, players: players, matches: context.matches.length }
+}
+
 const getSeasonMatches = async (regionId, seasonName, tournaments, playerIds) => {
     const region = await getRegion(regionId)
     const seasonIndex = await getSeason(regionId, seasonName)
@@ -1138,7 +1286,9 @@ const getEventResultsByRegion = async (regionId, seasonName, tournamentId, event
     return results
 }
 
-const getTournamentsBySeason = async (regionId, seasonName) => {
+// withCounts=false skips the roster-vs-roster tally, which costs a full
+// seasonFilter pass. Callers that only need bracket names and dates opt out.
+const getTournamentsBySeason = async (regionId, seasonName, withCounts = true) => {
     const region = await getRegion(regionId)
     const seasonIndex = await getSeason(regionId, seasonName)
     let player, gameIndex
@@ -1166,7 +1316,16 @@ const getTournamentsBySeason = async (regionId, seasonName) => {
                     let tournamentObject = {
                         tournamentId: bracket.tournamentId,
                         eventId: bracket.eventId,
-                        nameOfBracket: `${tournament.tournamentName}: ${tournament.events[eventIndex].eventName}`
+                        nameOfBracket: `${tournament.tournamentName}: ${tournament.events[eventIndex].eventName}`,
+                        tournamentName: tournament.tournamentName,
+                        eventName: tournament.events[eventIndex].eventName,
+                        pfp: tournament.pfp,
+                        startAt: tournament.events[eventIndex].startAt,
+                        entrants: tournament.events[eventIndex].entrants,
+                        // Filled in below: how many of this event's sets are
+                        // between two roster members, i.e. how much toggling it
+                        // actually changes the chart. Most events contribute none.
+                        sets: 0
                     }
                     results.push(tournamentObject)
                 }
@@ -1177,6 +1336,40 @@ const getTournamentsBySeason = async (regionId, seasonName) => {
             continue
         }
     }
+        if (!withCounts) {
+        results.sort((a, b) => (b.startAt || 0) - (a.startAt || 0))
+        return results
+    }
+
+    // Count roster-vs-roster sets per event, deduped (each set is stored on
+    // both players). Without this the filter lists 109 events when only ~45 can
+    // change anything, and the other 64 look broken when toggled.
+    const roster = new Set(region.seasons[seasonIndex].players)
+    const byEvent = new Map()
+    const seenSets = new Set()
+    for (const playerId of roster) {
+        let filtered
+        try {
+            filtered = await seasonFilter(regionId, seasonName, playerId)
+        } catch (e) {
+            continue
+        }
+        const index = filtered.games.findIndex((game) => game.gameId === region.gameId)
+        if (index === -1) continue
+        for (const record of filtered.games[index].opponents || []) {
+            if (!roster.has(record.opponentId)) continue
+            for (const set of record.tournaments || []) {
+                if (seenSets.has(set.setId)) continue
+                seenSets.add(set.setId)
+                byEvent.set(set.eventId, (byEvent.get(set.eventId) || 0) + 1)
+            }
+        }
+    }
+    for (const result of results) {
+        result.sets = byEvent.get(result.eventId) || 0
+    }
+    // Most recent first, and the events that matter above the ones that don't.
+    results.sort((a, b) => b.sets - a.sets || (b.startAt || 0) - (a.startAt || 0))
     return results
 }
 
@@ -1363,6 +1556,8 @@ const do_glicko2 = (h2h, matches, options = {}) => {
 
 export {
     refreshGamerTag,
+    buildSeasonContext,
+    getSeasonPlayerSummaries,
     backfillCompletedAt,
     getSeasonMatches,
     setsRequest,

@@ -38,89 +38,44 @@ const TournamentSearchSeason = () => {
     };
 
     useEffect(() => {
-        const fetchRegionData = async () => {
+        // One request. This used to walk every player's tournaments and push
+        // each one with no dedupe, so a bracket three roster players entered
+        // rendered three times -- and it refetched the tournament and event for
+        // every one of those duplicates.
+        const loadTournaments = async () => {
             try {
-                let region;
-                let brackets = [];
-                try {
-                    const response = await fetch(`/regions/${regionId}`);
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch region data');
-                    }
-                    const data = await response.json();
-                    region = data.region;
+                const regionResponse = await fetch(`/regions/${regionId}`);
+                if (regionResponse.ok) {
+                    const region = (await regionResponse.json()).region;
                     setRegionName(region.regionName);
-                } catch (error) {
-                    console.error('Error fetching region data:', error);
                 }
-                const response = await fetch(`/regions/${regionId}/seasons/${seasonName}`);
+                const response = await fetch(`/regions/${regionId}/seasons/${seasonName}/tournaments`);
                 if (!response.ok) {
-                    throw new Error('Failed to fetch region data');
+                    throw new Error('Failed to fetch season tournaments');
                 }
-                const data = await response.json();
-                let season = data[regionId];
-                season.gameId = region.gameId;
-                try {
-                    const response = await fetch(`/regions/${regionId}/seasons/${season.seasonName}/players`);
-                    if (!response.ok) {
-                        throw new Error(`Failed to fetch players for season ${season.seasonName}`);
-                    }
-                    let playersData = await response.json();
-                    playersData.players = await Promise.all(
-                        playersData.players.map(async (player) => {
-                            try {
-                                const response = await fetch(`/regions/${regionId}/seasons/${season.seasonName}/players/${player._id}`);
-                                if (!response.ok) {
-                                    throw new Error(`Failed to fetch ${player._id} for season ${season.seasonName}`);
-                                }
-                                let playerData = await response.json();
-                                player = playerData.player;
-                                for (const game of player.games) {
-                                    if (game.gameId === region.gameId) {
-                                        for (let tournament of game.tournaments) {
-                                            try {
-                                                const response = await fetch(`/tournaments/${tournament.tournamentId}`);
-                                                if (!response.ok) {
-                                                    throw new Error(`Failed to fetch tournament`);
-                                                }
-                                                const tournamentData = await response.json();
-                                                try {
-                                                    const response = await fetch(`/tournaments/${tournament.tournamentId}/events/${tournament.eventId}`);
-                                                    if (!response.ok) {
-                                                        throw new Error(`Failed to fetch event`);
-                                                    }
-                                                    const eventData = await response.json();
-                                                    brackets.push({
-                                                        _id: tournamentData.tournament._id,
-                                                        tournament: tournamentData.tournament,
-                                                        event: eventData[tournamentData.tournament._id]
-                                                    });
-                                                } catch (error) {
-                                                    console.error(`Error fetching ${tournament.eventId}:`, error);
-                                                }
-                                            } catch (error) {
-                                                console.error(`Error fetching ${tournament.tournamentId}:`, error);
-                                            }
-                                        }
-                                    }
-                                }
-                                return player;
-                            } catch (error) {
-                                console.error(`Error fetching ${player._id} for season ${season.seasonName}:`, error);
-                                return player;
-                            }
-                        })
-                    );
-                    season.players = playersData.players;
-                } catch (error) {
-                    console.error(`Error fetching players for season ${season.seasonName}:`, error);
-                }
-                setTournaments(brackets);
+                const results = (await response.json()).results || [];
+                setTournaments(results.map((r) => ({
+                    _id: r.eventId,
+                    tournament: {
+                        _id: r.tournamentId,
+                        tournamentName: r.tournamentName,
+                        pfp: r.pfp
+                    },
+                    event: {
+                        eventId: r.eventId,
+                        eventName: r.eventName,
+                        startAt: r.startAt,
+                        entrants: r.entrants
+                    },
+                    nameOfBracket: r.nameOfBracket,
+                    sets: r.sets
+                })));
             } catch (error) {
-                console.error('Error fetching season data:', error);
+                console.error('Error fetching season tournaments:', error);
+                setTournaments([]);
             }
         };
-        fetchRegionData();
+        loadTournaments();
     }, [seasonName, regionId]);
 
     const seasonTournamentMapper = (tournament) => ({
@@ -129,6 +84,7 @@ const TournamentSearchSeason = () => {
         _id: tournament.event.eventId,
         tournament: tournament.tournament,
         event: tournament.event,
+        seasonPath: `/regions/${regionId}/seasons/${seasonName}/tournaments`,
     });
 
     let filteredTournaments = useMemo(() => {

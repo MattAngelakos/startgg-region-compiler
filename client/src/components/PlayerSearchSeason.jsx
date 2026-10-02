@@ -20,7 +20,7 @@ const PlayerSearchSeason = () => {
     const [dropdownVisible, setDropdownVisible] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [perPage, setPerPage] = useState(10);
-    const [sortKey, setSortKey] = useState('tournamentName');
+    const [sortKey, setSortKey] = useState('glicko');
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -38,83 +38,24 @@ const PlayerSearchSeason = () => {
         navigate(`${location.pathname}/${playerId}`);
     };
     useEffect(() => {
-        const fetchRegionData = async () => {
+        // One request for the whole list. This used to fetch the region, the
+        // season, the player list, each player individually, and the ratings
+        // separately -- 24 requests that each re-ran the same season filtering.
+        const loadSeason = async () => {
             try {
-                let region
-                try {
-                    const response = await fetch(`/regions/${regionId}`);
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch region data');
-                    }
-                    const data = await response.json();
-                    region = data.region
-                    setGameId(region.gameId)
-                    setRegionName(region.regionName)
-                } catch (error) {
-                    console.error('Error fetching region data:', error);
-                }
-                const response = await fetch(`/regions/${regionId}/seasons/${seasonName}`);
+                const response = await fetch(`/regions/${regionId}/seasons/${seasonName}/players-summary`);
                 if (!response.ok) {
-                    throw new Error('Failed to fetch region data');
+                    throw new Error('Failed to fetch season players');
                 }
                 const data = await response.json();
-                let season = data[regionId]
-                season.gameId = region.gameId
-                try {
-                    const response = await fetch(`/regions/${regionId}/seasons/${season.seasonName}/players`);
-                    if (!response.ok) {
-                        throw new Error(`Failed to fetch players for season ${season.seasonName}`);
-                    }
-                    let playersData = await response.json();
-                    playersData.players = await Promise.all(
-                        playersData.players.map(async (player) => {
-                            try {
-                                const response = await fetch(`/regions/${regionId}/seasons/${season.seasonName}/players/${player._id}`);
-                                if (!response.ok) {
-                                    throw new Error(`Failed to fetch ${player._id} for season ${season.seasonName}`);
-                                }
-                                let playerData = await response.json();
-                                player = playerData.player
-                                for (const game of player.games) {
-                                    if (game.gameId === region.gameId) {
-                                        for (let tournament of game.tournaments) {
-                                            try {
-                                                const response = await fetch(`/tournaments/${tournament.tournamentId}`)
-                                                if (!response.ok) {
-                                                    throw new Error(`Failed to fetch tournament`);
-                                                }
-                                                const tournamentData = await response.json()
-                                                tournament.name = tournamentData.tournament.tournamentName
-                                            } catch (error) {
-                                                console.error(`Error fetching ${tournament.tournamentId}:`, error);
-                                            }
-                                        }
-                                    }
-                                }
-                                return player
-                            } catch (error) {
-                                console.error(`Error fetching ${player._id} for season ${season.seasonName}:`, error);
-                                return player
-                            }
-                        })
-                    )
-                    season.players = playersData.players
-                    for (let player of season.players)
-                        for (let game of player.games) {
-                            if (game.gameId === region.gameId) {
-                                player.tournaments = game.tournaments.length;
-                                break;
-                            }
-                        }
-                } catch (error) {
-                    console.error(`Error fetching players for season ${season.seasonName}:`, error);
-                }
-                setSeason(season);
+                setGameId(data.region.gameId);
+                setRegionName(data.region.regionName);
+                setSeason({ seasonName: seasonName, gameId: data.region.gameId, players: data.players });
             } catch (error) {
-                console.error('Error fetching season data:', error);
+                console.error('Error fetching season players:', error);
             }
         };
-        fetchRegionData();
+        loadSeason();
     }, [seasonName, regionId]);
     useEffect(() => {
         if (!gameId) return;
@@ -138,13 +79,32 @@ const PlayerSearchSeason = () => {
             player: player,
             gameId: gameId,
             characterIcons: characterIcons,
+            seasonPath: `/regions/${regionId}/seasons/${seasonName}/players`,
         }),
-        [gameId, characterIcons]
+        [gameId, characterIcons, regionId, seasonName]
     );
     let filteredPlayers = useMemo(() => {
         if (!season) return [];
         let players
+        const byNumber = (key) => (a, b) => {
+            // Players with no rating sort last rather than to the top.
+            const av = a[key] === undefined ? -Infinity : a[key];
+            const bv = b[key] === undefined ? -Infinity : b[key];
+            return bv - av;
+        };
         switch (sortKey) {
+            case 'glicko':
+                players = (season.players).sort(byNumber('glicko'));
+                break;
+            case '-glicko':
+                players = (season.players).sort((a, b) => byNumber('glicko')(b, a));
+                break;
+            case 'elo':
+                players = (season.players).sort(byNumber('elo'));
+                break;
+            case '-elo':
+                players = (season.players).sort((a, b) => byNumber('elo')(b, a));
+                break;
             case '-tournamentName':
                 players = (season.players).sort((a, b) => b.gamerTag.localeCompare(a.gamerTag));
                 break;
@@ -152,10 +112,10 @@ const PlayerSearchSeason = () => {
                 players = (season.players).sort((a, b) => a.gamerTag.localeCompare(b.gamerTag));
                 break;
             case 'entrants':
-                players = (season.players).sort((a, b) => b.tournaments - a.tournaments);
+                players = (season.players).sort((a, b) => b.brackets - a.brackets);
                 break;
             case '-entrants':
-                players = (season.players).sort((a, b) => a.tournaments - b.tournaments);
+                players = (season.players).sort((a, b) => a.brackets - b.brackets);
                 break;
             default:
                 players = season.players
@@ -189,6 +149,10 @@ const PlayerSearchSeason = () => {
                 <div className="sort-options">
                     <label>Sort by: </label>
                     <select onChange={(e) => setSortKey(e.target.value)} value={sortKey}>
+                        <option value="glicko">Glicko-2 (highest)</option>
+                        <option value="-glicko">Glicko-2 (lowest)</option>
+                        <option value="elo">Elo (highest)</option>
+                        <option value="-elo">Elo (lowest)</option>
                         <option value="tournamentName">Alphanumerical</option>
                         <option value="-tournamentName">Reverse Alphanumerical</option>
                         <option value="entrants">Most Brackets</option>

@@ -5,14 +5,18 @@ import person from '../assets/person.png';
 import trophy from '../assets/trophy.png'
 import { formatDate } from '../helpers';
 
-const TournamentItem = ({ tournament, event, placement }) => {
+const TournamentItem = ({ tournament, event, placement, seasonPath }) => {
     const startDate = new Date(event.startAt * 1000);
     const formattedStartDate = formatDate(startDate);
     return (
         <div className="tournament-item">
             <img src={tournament.banner} alt={`${tournament.tournamentName} logo`} className="tournament-logo" />
             <div className="tournament-info">
-                <Link to={`${window.location.href}/${event.eventId}`}>
+                {/* window.location.href is an absolute URL, and the bracket
+                    route needs the tournament id as well as the event id. */}
+                <Link to={seasonPath
+                    ? `${seasonPath}/${tournament._id}/events/${event.eventId}`
+                    : `/tournaments/${tournament._id}/events/${event.eventId}`}>
                     <h2>{tournament.tournamentName}: {event.eventName}</h2>
                 </Link>
                 <div className="tournament-details">

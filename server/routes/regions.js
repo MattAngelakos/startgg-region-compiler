@@ -2,8 +2,8 @@ import express from "express";
 import { getRegionSeasonSummaries } from '../data/summaries.js';
 import { getAllRegions, getRegion } from "../data/regions.js";
 import { getSeason } from "../data/seasons.js";
-import { do_elo, do_glicko2, do_h2h, finish_h2h, getSeasonMatches, getEventResultsByRegion, getTournamentsBySeason, seasonFilter } from "../data/playerData.js";
-import { arrayCheck, atLeast, intCheck, numCheck } from "../helpers.js";
+import { do_elo, do_glicko2, do_h2h, finish_h2h, getSeasonMatches, buildSeasonContext, getSeasonPlayerSummaries, getEventResultsByRegion, getTournamentsBySeason, seasonFilter } from "../data/playerData.js";
+import { arrayCheck, atLeast, intCheck, numCheck, stringCheck } from "../helpers.js";
 import { getPlayer } from "../data/players.js";
 import _ from 'lodash';
 const router = express.Router();
@@ -57,6 +57,22 @@ router.get("/:regionId/seasons/:seasonName", async (req, res) => {
 router.get("/:regionId/seasons-summary", async (req, res) => {
     try {
         const summary = await getRegionSeasonSummaries(req.params.regionId);
+        res.status(200).json(summary);
+    } catch (error) {
+        res.status(500).json({ error: String(error) });
+    }
+});
+
+router.get("/:regionId/seasons/:seasonName/players-summary", async (req, res) => {
+    let seasonName = req.params.seasonName;
+    try {
+        seasonName = stringCheck(seasonName, "seasonName").toLowerCase();
+        atLeast(seasonName, 1, "seasonName");
+    } catch (e) {
+        return res.status(400).json({ error: 'season name must be a non empty string' });
+    }
+    try {
+        const summary = await getSeasonPlayerSummaries(req.params.regionId, seasonName);
         res.status(200).json(summary);
     } catch (error) {
         res.status(500).json({ error: String(error) });
@@ -161,8 +177,9 @@ router.get("/:regionId/seasons/:seasonName/stats/head-to-head", async (req, res)
         return res.status(400).json({ error: 'season name be a non empty string' });
     }
     try {
-        const unfinished_h2h = await do_h2h(regionId, seasonName)
-        const matches = await getSeasonMatches(regionId, seasonName)
+        const context = await buildSeasonContext(regionId, seasonName)
+        const unfinished_h2h = context.h2h
+        const matches = context.matches
         let h2h = _.cloneDeep(unfinished_h2h);
         h2h = do_elo(h2h, matches)
         h2h = do_glicko2(h2h, matches)
@@ -208,8 +225,9 @@ router.post("/:regionId/seasons/:seasonName/stats/head-to-head", async (req, res
         }
     }
     try {
-        let unfinished_h2h = await do_h2h(regionId, seasonName, tournaments, players)
-        const matches = await getSeasonMatches(regionId, seasonName, tournaments, players)
+        const context = await buildSeasonContext(regionId, seasonName, tournaments, players)
+        let unfinished_h2h = context.h2h
+        const matches = context.matches
         let h2h = _.cloneDeep(unfinished_h2h);
         h2h = do_elo(h2h, matches)
         h2h = do_glicko2(h2h, matches)
@@ -237,7 +255,10 @@ router.get("/:regionId/seasons/:seasonName/tournaments", async (req, res) => {
         return res.status(400).json({ error: 'season name be a non empty string' });
     }
     try {
-        const results = await getTournamentsBySeason(regionId, seasonName)
+        // ?counts=0 skips the roster-vs-roster tally for callers that only
+        // need bracket names and dates.
+        const withCounts = req.query.counts !== '0' && req.query.counts !== 'false'
+        const results = await getTournamentsBySeason(regionId, seasonName, withCounts)
         res.status(200).json({
             results: results,
         });
